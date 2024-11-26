@@ -30,47 +30,60 @@
       }
       /* Sidebar styling */
       #sidebar {
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            background-color: rgba(0, 0, 0, 0.7);
-            color: white;
-            padding: 15px;
-            font-family: Arial, sans-serif;
-            font-size: 16px;
-            border-radius: 10px;
-            z-index: 10;
-        }
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        background-color: rgba(0, 0, 0, 0.7);
+        color: white;
+        padding: 15px;
+        font-family: Arial, sans-serif;
+        font-size: 16px;
+        border-radius: 10px;
+        z-index: 10;
+      }
 
-        .sidebar-item {
-            margin: 10px 0;
-        }
+      .sidebar-item {
+        margin: 10px 0;
+      }
 
-        .threat {
-            color: red;
-        }
+      .threat {
+        color: red;
+      }
 
-        .prey {
-            color: green;
-        }
+      .prey {
+        color: green;
+      }
 
-        button { 
-            top: 20px; 
-            left: 200px; 
-            padding: 10px; 
-            background-color: #4CAF50; 
-            color: white; 
-            border: none; 
-            cursor: pointer;
-            z-index: 10;
-        }
+      button {
+        left: 200px;
+        padding: 10px;
+        background-color: #4caf50;
+        color: white;
+        border: none;
+        cursor: pointer;
+        z-index: 10;
+      }
+
+      .checkbox-container {
+        margin-top: 10px;
+        margin-bottom: 10px;
+      }
+
+      .checkbox-label {
+        display: inline-block;
+        margin-left: 5px;
+      }
     </style>
   </head>
   <body>
     <div id="sidebar">
-        <div class="sidebar-item threat">Red ones are threats (Light source)</div>
-        <div class="sidebar-item prey">Green ones are prey</div>
-        <button id="toggleShell">Toggle Shell</button>
+      <div class="sidebar-item threat">Red ones are threats</div>
+      <div class="sidebar-item prey">Green ones are prey</div>
+      <div class="checkbox-container">
+        <input type="checkbox" id="scanToggle" checked />
+        <label for="scanToggle" class="checkbox-label">Enable Scan Beams</label>
+      </div>
+      <button id="toggleShell">Toggle Shell</button>
     </div>
     <div id="info">
       <h1 style="color: white">3D Scallop Vision Simulation</h1>
@@ -93,6 +106,9 @@
       renderer.setSize(window.innerWidth, window.innerHeight);
       document.body.appendChild(renderer.domElement);
 
+      scene.background = new THREE.Color(0x1f3b5f); // Darker blue for underwater effect
+      scene.fog = new THREE.Fog(0x1f3b5f, 10, 100); // Underwater fog
+
       // Add lighting to the scene
       const light = new THREE.PointLight(0xff0000, 1, 100); // Red point light
       scene.add(light);
@@ -113,11 +129,13 @@
         wireframe: false,
       });
       const scallop = new THREE.Mesh(scallopGeometry, scallopMaterial);
+      scallop.scale.set(1, 0.6, 1);
       scene.add(scallop);
 
       // Add the scallop's eyes along the midsection (equator of the ovoid)
       const numEyes = 20; // Reduced for clarity
       const eyeGroup = new THREE.Group();
+      const eyeBeams = [];
 
       for (let i = 0; i < numEyes; i++) {
         // Position eyes along the equator of the ovoid
@@ -137,6 +155,32 @@
         // Position the eye and add it to the group
         eye.position.set(x, y, z);
         eyeGroup.add(eye);
+
+        // Create a beam (ray) for each eye
+        const beamGeometry = new THREE.CylinderGeometry(0.05, 0.05, 30, 8);
+        const beamMaterial = new THREE.MeshBasicMaterial({
+          color: 0x00ff00,
+          opacity: 0.5,
+          transparent: true,
+        });
+        const beam = new THREE.Mesh(beamGeometry, beamMaterial);
+        const eyeDirection = new THREE.Vector3(x, y, z).normalize(); // Normalize to get unit vector
+        const perpendicularDirection = new THREE.Vector3(
+          -eyeDirection.z,
+          0,
+          eyeDirection.x
+        ); // Perpendicular in X-Z plane
+
+        // use x y z to rotate the beat around the x axis but the angle should be calculated based on their posiion
+        beam.scale.set(0.1, 0.1, 0.1); // Adjust length as needed
+        beam.rotation.x = Math.PI / 2;
+        beam.rotation.z = Math.atan2(eyeDirection.x, -eyeDirection.z);
+
+        // beam should only point away from the eye
+        beam.position.set(x, y, z); // Position the beam at the eye
+
+        scene.add(beam);
+        eyeBeams.push(beam);
       }
 
       scene.add(eyeGroup);
@@ -169,7 +213,8 @@
       const shellBottom = new THREE.Mesh(shellBottomGeometry, shellMaterial);
       shellTop.position.y = 2; // Position the top shell
       shellBottom.position.y = -2; // Position the bottom shell
-
+      shellTop.scale.set(1, 0.6, 1); // Flatten the top shell
+      shellBottom.scale.set(1, 0.6, 1); // Flatten the bottom shell
       scene.add(shellTop);
       scene.add(shellBottom);
 
@@ -182,15 +227,22 @@
       controls.dampingFactor = 0.05;
 
       let isShellOpen = false; // Flag to track if the shell is open
-        let isAnimating = false; // Flag to check if the shell is in the process of opening/closing
+      let isAnimating = false; // Flag to check if the shell is in the process of opening/closing
 
-        // Button to toggle shell opening and closing
-        document.getElementById("toggleShell").addEventListener("click", () => {
-            if (!isAnimating) {
-                isShellOpen = !isShellOpen; // Toggle shell state
-                isAnimating = true; // Start animation
-            }
+      // Button to toggle shell opening and closing
+      document.getElementById("toggleShell").addEventListener("click", () => {
+        if (!isAnimating) {
+          isShellOpen = !isShellOpen; // Toggle shell state
+          isAnimating = true; // Start animation
+        }
+      });
+
+      const scanToggle = document.getElementById("scanToggle");
+      scanToggle.addEventListener("change", (e) => {
+        eyeBeams.forEach((beam) => {
+          beam.visible = e.target.checked;
         });
+      });
 
       // Animate the light source with sinusoidal movement
       let time = 0; // Keeps track of time for sinusoidal motion
@@ -221,10 +273,17 @@
         }
 
         // Update eye brightness based on distance to light
-        eyeGroup.children.forEach((eye) => {
+        eyeGroup.children.forEach((eye, index) => {
           const distance = light.position.distanceTo(eye.position);
           const intensity = Math.max(0, 1 - distance / 20); // Inverse distance effect
           eye.material.emissive.setRGB(intensity, 0, 0); // Blue glow
+
+          // Animate the beams to extend outward
+          if (scanToggle.checked) {
+            const beam = eyeBeams[index];
+            const length = Math.sin(time + index) * 15 + 10; // Vary length for scanning effect
+            beam.scale.set(1, length, 1); // Stretch the beam
+          }
         });
 
         controls.update(); // Update orbit controls
