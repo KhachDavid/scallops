@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scallop Vision Simulation</title>
+  <style>
+    body {
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background: linear-gradient(to bottom, #87ceeb, #ffffff);
+      font-family: Arial, sans-serif;
+    }
+    canvas {
+      display: block;
+      background: #f0f8ff;
+      border-radius: 50%;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+    }
+    #info {
+      position: absolute;
+      top: 10px;
+      text-align: center;
+      width: 100%;
+      color: #333;
+    }
+    #info h1 {
+      margin: 0;
+      font-size: 1.5em;
+    }
+    #info p {
+      margin: 5px 0 0;
+      font-size: 1em;
+    }
+  </style>
+</head>
+<body>
+  <div id="info">
+    <h1>Scallop Vision Simulation</h1>
+    <p>Observe how scallop eyes detect a moving light source!</p>
+  </div>
+  <canvas id="scallopCanvas"></canvas>
+
+  <script>
+    // Canvas setup
+    const canvas = document.getElementById('scallopCanvas');
+    const ctx = canvas.getContext('2d');
+    const size = 500;
+    canvas.width = size;
+    canvas.height = size;
+
+    // Parameters
+    const numEyes = 200; // Number of eyes
+    const radius = 200; // Radius of the eye circle
+    const eyeSize = 10; // Increased size for eyes
+    const lightSize = 10; // Light source size
+    const sensitivity = 0.01; // Adjusted sensitivity for clarity
+
+    // Eye positions
+    const eyePositions = [];
+    for (let i = 0; i < numEyes; i++) {
+      const angle = (2 * Math.PI * i) / numEyes;
+      const x = canvas.width / 2 + radius * Math.cos(angle);
+      const y = canvas.height / 2 + radius * Math.sin(angle);
+      eyePositions.push({ x, y });
+    }
+
+    // Light source
+    const light = {
+      x: canvas.width / 2,
+      y: canvas.height / 2,
+      vx: 2,
+      vy: 1.5,
+    };
+
+    // Draw a single eye
+    function drawEye(x, y, intensity) {
+      ctx.beginPath();
+      ctx.arc(x, y, eyeSize, 0, 2 * Math.PI);
+      const color = `rgba(0, 0, 255, ${Math.min(intensity, 1)})`; // Blue with adjusted opacity
+      ctx.fillStyle = color;
+      ctx.strokeStyle = "black"; // Outline for better visibility
+      ctx.lineWidth = 1;
+      ctx.fill();
+      ctx.stroke();
+    }
+
+    // Draw the light source
+    function drawLight() {
+      ctx.beginPath();
+      ctx.arc(light.x, light.y, lightSize, 0, 2 * Math.PI);
+      ctx.fillStyle = 'red'; // Red light
+      ctx.fill();
+    }
+
+    // Update the light source position
+    function updateLight() {
+      light.x += light.vx;
+      light.y += light.vy;
+
+      // Bounce the light off the edges
+      if (light.x - lightSize < 0 || light.x + lightSize > canvas.width) {
+        light.vx *= -1;
+      }
+      if (light.y - lightSize < 0 || light.y + lightSize > canvas.height) {
+        light.vy *= -1;
+      }
+    }
+
+    // Main animation loop
+    function animate() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear canvas
+
+      // Draw all eyes and calculate their intensity
+      eyePositions.forEach(({ x, y }) => {
+        const distance = Math.hypot(light.x - x, light.y - y); // Distance to light
+        const intensity = 1 - Math.min(1, distance / canvas.width); // Inverse distance for intensity
+        drawEye(x, y, intensity); // Draw each eye
+      });
+
+      // Draw the light source
+      drawLight();
+
+      // Update light position
+      updateLight();
+
+      requestAnimationFrame(animate); // Continue animation
+    }
+
+    // Start the animation
+    animate();
+  </script>
+</body>
+</html>
