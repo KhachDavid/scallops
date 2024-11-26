@@ -1,137 +1,244 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Scallop Vision Simulation</title>
-  <style>
-    body {
-      margin: 0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      background: linear-gradient(to bottom, #87ceeb, #ffffff);
-      font-family: Arial, sans-serif;
-    }
-    canvas {
-      display: block;
-      background: #f0f8ff;
-      border-radius: 50%;
-      box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
-    }
-    #info {
-      position: absolute;
-      top: 10px;
-      text-align: center;
-      width: 100%;
-      color: #333;
-    }
-    #info h1 {
-      margin: 0;
-      font-size: 1.5em;
-    }
-    #info p {
-      margin: 5px 0 0;
-      font-size: 1em;
-    }
-  </style>
-</head>
-<body>
-  <div id="info">
-    <h1>Scallop Vision Simulation</h1>
-    <p>Observe how scallop eyes detect a moving light source!</p>
-  </div>
-  <canvas id="scallopCanvas"></canvas>
-
-  <script>
-    // Canvas setup
-    const canvas = document.getElementById('scallopCanvas');
-    const ctx = canvas.getContext('2d');
-    const size = 500;
-    canvas.width = size;
-    canvas.height = size;
-
-    // Parameters
-    const numEyes = 200; // Number of eyes
-    const radius = 200; // Radius of the eye circle
-    const eyeSize = 10; // Increased size for eyes
-    const lightSize = 10; // Light source size
-    const sensitivity = 0.01; // Adjusted sensitivity for clarity
-
-    // Eye positions
-    const eyePositions = [];
-    for (let i = 0; i < numEyes; i++) {
-      const angle = (2 * Math.PI * i) / numEyes;
-      const x = canvas.width / 2 + radius * Math.cos(angle);
-      const y = canvas.height / 2 + radius * Math.sin(angle);
-      eyePositions.push({ x, y });
-    }
-
-    // Light source
-    const light = {
-      x: canvas.width / 2,
-      y: canvas.height / 2,
-      vx: 2,
-      vy: 1.5,
-    };
-
-    // Draw a single eye
-    function drawEye(x, y, intensity) {
-      ctx.beginPath();
-      ctx.arc(x, y, eyeSize, 0, 2 * Math.PI);
-      const color = `rgba(0, 0, 255, ${Math.min(intensity, 1)})`; // Blue with adjusted opacity
-      ctx.fillStyle = color;
-      ctx.strokeStyle = "black"; // Outline for better visibility
-      ctx.lineWidth = 1;
-      ctx.fill();
-      ctx.stroke();
-    }
-
-    // Draw the light source
-    function drawLight() {
-      ctx.beginPath();
-      ctx.arc(light.x, light.y, lightSize, 0, 2 * Math.PI);
-      ctx.fillStyle = 'red'; // Red light
-      ctx.fill();
-    }
-
-    // Update the light source position
-    function updateLight() {
-      light.x += light.vx;
-      light.y += light.vy;
-
-      // Bounce the light off the edges
-      if (light.x - lightSize < 0 || light.x + lightSize > canvas.width) {
-        light.vx *= -1;
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>3D Scallop Vision Simulation</title>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
       }
-      if (light.y - lightSize < 0 || light.y + lightSize > canvas.height) {
-        light.vy *= -1;
+      canvas {
+        display: block;
+        flex-grow: 1;
       }
-    }
+      #info {
+        position: absolute;
+        top: 10px;
+        text-align: center;
+        width: 100%;
+        color: #333;
+      }
+      #info h1 {
+        margin: 0;
+        font-size: 1.5em;
+      }
+      #info p {
+        margin: 5px 0 0;
+        font-size: 1em;
+      }
+      /* Sidebar styling */
+      #sidebar {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 15px;
+            font-family: Arial, sans-serif;
+            font-size: 16px;
+            border-radius: 10px;
+            z-index: 10;
+        }
 
-    // Main animation loop
-    function animate() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear canvas
+        .sidebar-item {
+            margin: 10px 0;
+        }
 
-      // Draw all eyes and calculate their intensity
-      eyePositions.forEach(({ x, y }) => {
-        const distance = Math.hypot(light.x - x, light.y - y); // Distance to light
-        const intensity = 1 - Math.min(1, distance / canvas.width); // Inverse distance for intensity
-        drawEye(x, y, intensity); // Draw each eye
+        .threat {
+            color: red;
+        }
+
+        .prey {
+            color: green;
+        }
+
+        button { 
+            top: 20px; 
+            left: 200px; 
+            padding: 10px; 
+            background-color: #4CAF50; 
+            color: white; 
+            border: none; 
+            cursor: pointer;
+            z-index: 10;
+        }
+    </style>
+  </head>
+  <body>
+    <div id="sidebar">
+        <div class="sidebar-item threat">Red ones are threats (Light source)</div>
+        <div class="sidebar-item prey">Green ones are prey</div>
+        <button id="toggleShell">Toggle Shell</button>
+    </div>
+    <div id="info">
+      <h1 style="color: white">3D Scallop Vision Simulation</h1>
+      <p style="color: white">
+        Drag to rotate, scroll to zoom, observe the scallop's reaction to light!
+      </p>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="OrbitControls.js"></script>
+    <script>
+      // Setup the scene, camera, and renderer
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(
+        75,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        1000
+      );
+      const renderer = new THREE.WebGLRenderer();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      document.body.appendChild(renderer.domElement);
+
+      // Add lighting to the scene
+      const light = new THREE.PointLight(0xff0000, 1, 100); // Red point light
+      scene.add(light);
+
+      const ambientLight = new THREE.AmbientLight(0xeae0c8, 1); // Higher intensity for ambient light
+      scene.add(ambientLight);
+
+      // Create a sphere for the light source
+      const lightGeometry = new THREE.SphereGeometry(0.5, 16, 16);
+      const lightMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+      const lightMesh = new THREE.Mesh(lightGeometry, lightMaterial);
+      light.add(lightMesh);
+
+      // Create the scallop body
+      const scallopGeometry = new THREE.SphereGeometry(10, 32, 16);
+      const scallopMaterial = new THREE.MeshLambertMaterial({
+        color: 0xf5deb3,
+        wireframe: false,
+      });
+      const scallop = new THREE.Mesh(scallopGeometry, scallopMaterial);
+      scene.add(scallop);
+
+      // Add the scallop's eyes along the midsection (equator of the ovoid)
+      const numEyes = 20; // Reduced for clarity
+      const eyeGroup = new THREE.Group();
+
+      for (let i = 0; i < numEyes; i++) {
+        // Position eyes along the equator of the ovoid
+        const angle = (i / numEyes) * Math.PI * 2; // Spread evenly around the equator
+        const x = 10 * Math.cos(angle); // Radius along x-axis
+        const y = 0; // Centered on midsection
+        const z = 10 * Math.sin(angle); // Radius along z-axis
+
+        // Create an eye
+        const eyeGeometry = new THREE.SphereGeometry(0.3, 16, 16);
+        const eyeMaterial = new THREE.MeshPhongMaterial({
+          color: 0x000000,
+          emissive: 0x000000,
+        });
+        const eye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+
+        // Position the eye and add it to the group
+        eye.position.set(x, y, z);
+        eyeGroup.add(eye);
+      }
+
+      scene.add(eyeGroup);
+
+      // Create the top and bottom shells
+      const shellTopGeometry = new THREE.SphereGeometry(
+        10,
+        32,
+        16,
+        0,
+        Math.PI * 2,
+        0,
+        Math.PI / 2
+      );
+      const shellBottomGeometry = new THREE.SphereGeometry(
+        10,
+        32,
+        16,
+        0,
+        Math.PI * 2,
+        Math.PI / 2,
+        Math.PI / 2
+      );
+      const shellMaterial = new THREE.MeshLambertMaterial({
+        color: 0x996633,
+        wireframe: false,
       });
 
-      // Draw the light source
-      drawLight();
+      const shellTop = new THREE.Mesh(shellTopGeometry, shellMaterial);
+      const shellBottom = new THREE.Mesh(shellBottomGeometry, shellMaterial);
+      shellTop.position.y = 2; // Position the top shell
+      shellBottom.position.y = -2; // Position the bottom shell
 
-      // Update light position
-      updateLight();
+      scene.add(shellTop);
+      scene.add(shellBottom);
 
-      requestAnimationFrame(animate); // Continue animation
-    }
+      // Set up camera position
+      camera.position.z = 30;
 
-    // Start the animation
-    animate();
-  </script>
-</body>
+      // Add orbit controls for dragging and zooming
+      const controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true; // Smooth dragging
+      controls.dampingFactor = 0.05;
+
+      let isShellOpen = false; // Flag to track if the shell is open
+        let isAnimating = false; // Flag to check if the shell is in the process of opening/closing
+
+        // Button to toggle shell opening and closing
+        document.getElementById("toggleShell").addEventListener("click", () => {
+            if (!isAnimating) {
+                isShellOpen = !isShellOpen; // Toggle shell state
+                isAnimating = true; // Start animation
+            }
+        });
+
+      // Animate the light source with sinusoidal movement
+      let time = 0; // Keeps track of time for sinusoidal motion
+      function animate() {
+        requestAnimationFrame(animate);
+
+        // Update light position using sinusoidal motion
+        time += 0.02;
+        light.position.x = 15 * Math.sin(time); // Moves horizontally in a wave
+        light.position.y = 5 * Math.sin(time * 0.5); // Moves vertically slower
+        light.position.z = 15 * Math.cos(time); // Moves around the scallop
+
+        // Animate the shell opening/closing with discrete steps
+        if (isShellOpen) {
+          if (shellTop.position.y < 6) {
+            // Move top shell up
+            shellTop.position.y += 0.1;
+          } else {
+            isAnimating = false; // Stop animation when fully open
+          }
+        } else {
+          if (shellTop.position.y > 2) {
+            // Move top shell down
+            shellTop.position.y -= 0.1;
+          } else {
+            isAnimating = false; // Stop animation when fully closed
+          }
+        }
+
+        // Update eye brightness based on distance to light
+        eyeGroup.children.forEach((eye) => {
+          const distance = light.position.distanceTo(eye.position);
+          const intensity = Math.max(0, 1 - distance / 20); // Inverse distance effect
+          eye.material.emissive.setRGB(intensity, 0, 0); // Blue glow
+        });
+
+        controls.update(); // Update orbit controls
+        renderer.render(scene, camera);
+      }
+
+      animate();
+
+      // Handle resizing
+      window.addEventListener("resize", () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+    </script>
+  </body>
 </html>
