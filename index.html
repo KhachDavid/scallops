@@ -1,165 +1,173 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>3D Scallop Vision Simulation</title>
-    <style>
-      body {
-        margin: 0;
-        overflow: hidden;
-      }
-      canvas {
-        display: block;
-        flex-grow: 1;
-      }
-      #info {
-        position: absolute;
-        top: 10px;
-        text-align: center;
-        width: 100%;
-        color: #333;
-      }
-      #info h1 {
-        margin: 0;
-        font-size: 1.5em;
-      }
-      #info p {
-        margin: 5px 0 0;
-        font-size: 1em;
-      }
-      /* Sidebar styling */
-      #sidebar {
-        position: fixed;
-        top: 20px;
-        left: 20px;
-        background-color: rgba(0, 0, 0, 0.7);
-        color: white;
-        padding: 15px;
-        font-family: Arial, sans-serif;
-        font-size: 16px;
-        border-radius: 10px;
-        z-index: 10;
-      }
 
-      .sidebar-item {
-        margin: 10px 0;
-      }
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>3D Scallop Vision Simulation</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+    }
 
-      .threat {
-        color: red;
-      }
+    canvas {
+      display: block;
+      flex-grow: 1;
+    }
 
-      .prey {
-        color: green;
-      }
+    #info {
+      position: absolute;
+      top: 10px;
+      text-align: center;
+      width: 100%;
+      color: #333;
+    }
 
-      button {
-        left: 200px;
-        padding: 10px;
-        background-color: #4caf50;
-        color: white;
-        border: none;
-        cursor: pointer;
-        z-index: 10;
-      }
+    #info h1 {
+      margin: 0;
+      font-size: 1.5em;
+    }
 
-      .checkbox-container {
-        margin-top: 10px;
-        margin-bottom: 10px;
-      }
+    #info p {
+      margin: 5px 0 0;
+      font-size: 1em;
+    }
 
-      .checkbox-label {
-        display: inline-block;
-        margin-left: 5px;
-      }
-    </style>
-  </head>
-  <body>
-    <div id="sidebar">
-      <div class="sidebar-item threat">Red ones are threats</div>
-      <div class="sidebar-item prey">Green ones are prey</div>
-      <div class="checkbox-container">
-        <input type="checkbox" id="scanToggle" checked />
-        <label for="scanToggle" class="checkbox-label">Enable Scan Beams</label>
-      </div>
-      <button id="toggleShell">Toggle Shell</button>
-      <label for="threatVelocitySlider">Threat Velocity:</label>
-      <input
-        type="range"
-        id="threatVelocitySlider"
-        min="0.1"
-        max="5"
-        step="0.1"
-        value="1"
-      />
-      <span id="threatVelocityValue">1</span>
+    /* Sidebar styling */
+    #sidebar {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      background-color: rgba(0, 0, 0, 0.7);
+      color: white;
+      padding: 15px;
+      font-family: Arial, sans-serif;
+      font-size: 16px;
+      border-radius: 10px;
+      z-index: 10;
+    }
+
+    .sidebar-item {
+      margin: 10px 0;
+    }
+
+    .threat {
+      color: red;
+    }
+
+    .prey {
+      color: green;
+    }
+
+    button {
+      left: 200px;
+      padding: 10px;
+      background-color: #4caf50;
+      color: white;
+      border: none;
+      cursor: pointer;
+      z-index: 10;
+      padding-bottom: 10px;
+    }
+
+    .checkbox-container {
+      margin-top: 10px;
+      margin-bottom: 10px;
+    }
+
+    .checkbox-label {
+      display: inline-block;
+      margin-left: 5px;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="sidebar">
+    <div class="sidebar-item threat">Red ones are threats</div>
+    <div class="sidebar-item prey">Green ones are prey</div>
+    <div class="checkbox-container">
+      <input type="checkbox" id="scanToggle" checked />
+      <label for="scanToggle" class="checkbox-label">Enable Scan Beams</label>
     </div>
-    <div id="info">
-      <h1 style="color: white">3D Scallop Vision Simulation</h1>
-      <p style="color: white">
-        Drag to rotate, scroll to zoom, observe the scallop's reaction to light!
-      </p>
+    <button id="toggleShell">Toggle Shell</button>
+    <div style="padding: 10px 0" ;">
+      <label for="velocitySlider">Threat Velocity</label>
+      <input id="velocitySlider" type="range" min="0.001" max="0.5" step="0.001" value="0.02" style="width: 200px" />
+      <span id="velocityValue">0</span>
     </div>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="OrbitControls.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/23.1.3/tween.umd.js"></script>
+    <div>
+      <label for="scallopVelocitySlider">Scallop Velocity</label>
+      <input id="scallopVelocitySlider" type="range" min="0.001" max="1" step="0.001" value="0.3" style="width: 200px" />
+      <span id="scallopVelocityValue">0.3</span>
+    </div>
+  </div>
+  <div id="info">
+    <h1 style="color: white">3D Scallop Vision Simulation</h1>
+    <p style="color: white">
+      Drag to rotate, scroll to zoom, observe the scallop's reaction to light!
+    </p>
+  </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="OrbitControls.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/23.1.3/tween.umd.js"></script>
 
-    <script>
-      // Setup the scene, camera, and renderer
-      const scene = new THREE.Scene();
-      const camera = new THREE.PerspectiveCamera(
-        75,
-        window.innerWidth / window.innerHeight,
-        0.1,
-        1000
-      );
-      const renderer = new THREE.WebGLRenderer();
-      const raycaster = new THREE.Raycaster();
-      const mouse = new THREE.Vector2();
-      let selectedEye = null;
-      let eyeDetailText = null;
+  <script>
+    // Setup the scene, camera, and renderer
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(
+      75,
+      window.innerWidth / window.innerHeight,
+      0.1,
+      1000
+    );
+    const renderer = new THREE.WebGLRenderer();
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    let selectedEye = null;
+    let eyeDetailText = null;
 
-      // Function to animate the camera to focus on a specific eye
-      function zoomToEye(eye) {
-        const targetPosition = eye.position.clone();
-        const cameraTarget = new THREE.Vector3(
-          targetPosition.x,
-          targetPosition.y,
-          targetPosition.z
-        ).add(targetPosition.clone().normalize().multiplyScalar(5)); // Offset slightly for better visibility
+    // Function to animate the camera to focus on a specific eye
+    function zoomToEye(eye) {
+      const targetPosition = eye.position.clone();
+      const cameraTarget = new THREE.Vector3(
+        targetPosition.x,
+        targetPosition.y,
+        targetPosition.z
+      ).add(targetPosition.clone().normalize().multiplyScalar(5)); // Offset slightly for better visibility
 
-        // Animate camera movement
-        new TWEEN.Tween(camera.position)
-          .to(
-            {
-              x: cameraTarget.x,
-              y: cameraTarget.y,
-              z: cameraTarget.z,
-            },
-            1000 // Animation duration
-          )
-          .easing(TWEEN.Easing.Cubic.Out)
-          .start();
+      // Animate camera movement
+      new TWEEN.Tween(camera.position)
+        .to(
+          {
+            x: cameraTarget.x,
+            y: cameraTarget.y,
+            z: cameraTarget.z,
+          },
+          1000 // Animation duration
+        )
+        .easing(TWEEN.Easing.Cubic.Out)
+        .start();
 
-        // Add inside-eye detail visualization
-        // Add inside-eye detail visualization
+      // Add inside-eye detail visualization
+      // Add inside-eye detail visualization
 
-        // Add sidebar for explaining layers of the eye
-        let eyeSidebar = document.createElement("div");
-        eyeSidebar.style.color = "white";
-        eyeSidebar.style.backgroundColor = "rgba(0, 0, 0, 0.8)";
-        eyeSidebar.style.width = "300px";
-        eyeSidebar.style.padding = "15px";
-        eyeSidebar.style.borderRadius = "10px";
-        eyeSidebar.style.position = "absolute";
-        eyeSidebar.style.top = "50px";
-        eyeSidebar.style.right = "20px";
-        eyeSidebar.style.fontFamily = "Arial, sans-serif";
-        eyeSidebar.style.boxShadow = "0 4px 8px rgba(0, 0, 0, 0.3)";
+      // Add sidebar for explaining layers of the eye
+      let eyeSidebar = document.createElement("div");
+      eyeSidebar.style.color = "white";
+      eyeSidebar.style.backgroundColor = "rgba(0, 0, 0, 0.8)";
+      eyeSidebar.style.width = "300px";
+      eyeSidebar.style.padding = "15px";
+      eyeSidebar.style.borderRadius = "10px";
+      eyeSidebar.style.position = "absolute";
+      eyeSidebar.style.top = "50px";
+      eyeSidebar.style.right = "20px";
+      eyeSidebar.style.fontFamily = "Arial, sans-serif";
+      eyeSidebar.style.boxShadow = "0 4px 8px rgba(0, 0, 0, 0.3)";
 
-        // Populate sidebar with explanations
-        eyeSidebar.innerHTML = `
+      // Populate sidebar with explanations
+      eyeSidebar.innerHTML = `
   <h2>Layers of the Scallop's Eye</h2>
   <ul>
     <li><strong style="color: #007bff">Lens:</strong> Although they do not have a typical crystalline lens capable of strong refraction, they do have a gelatinous region at the front of their eye (roughly analogous to the vitreous humour in a human eye) that acts as a very weakly refracting lens. Light entering the scallop eye is refracted, but not to the extent that it forms a clear image on the back of the eye.</li>
@@ -170,386 +178,487 @@
   <p>The scallop's eye uses both retinas and the mirror to create a unique optical system, allowing it to detect predators and food efficiently.</p>
 `;
 
-        // Append sidebar to the document
-        document.body.appendChild(eyeSidebar);
-      }
+      // Append sidebar to the document
+      document.body.appendChild(eyeSidebar);
+    }
 
-      const particleCount = 200;
-      const particles = new THREE.Group();
+    const particleCount = 200;
+    const particles = new THREE.Group();
 
-      for (let i = 0; i < particleCount; i++) {
-        const particle = new THREE.Mesh(
-          new THREE.SphereGeometry(0.1, 8, 8),
-          new THREE.MeshBasicMaterial({
-            color: 0xffffff,
-            opacity: 0.6,
-            transparent: true,
-          })
-        );
-        particle.position.set(
-          Math.random() * 50 - 25,
-          Math.random() * 50 - 25,
-          Math.random() * 50 - 25
-        );
-        particles.add(particle);
-      }
-      scene.add(particles);
-
-      // Animate particles
-      function animateParticles() {
-        particles.children.forEach((particle) => {
-          particle.position.y += 0.01; // Slow upward drift
-          if (particle.position.y > 25) particle.position.y = -25;
-        });
-      }
-
-      // Restore camera view
-      function resetCameraView() {
-        new TWEEN.Tween(camera.position)
-          .to({ x: 0, y: 0, z: 30 }, 1000)
-          .easing(TWEEN.Easing.Cubic.Out)
-          .start();
-        if (eyeDetailText) {
-          document.body.removeChild(eyeDetailText);
-          eyeDetailText = null;
-        }
-      }
-
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      document.body.appendChild(renderer.domElement);
-
-      scene.background = new THREE.Color(0x1f3b5f); // Darker blue for underwater effect
-      scene.fog = new THREE.Fog(0x1f3b5f, 10, 100); // Underwater fog
-
-      // Add lighting to the scene
-      const light = new THREE.PointLight(0xff0000, 1, 100); // Red point light
-      scene.add(light);
-
-      const ambientLight = new THREE.AmbientLight(0xeae0c8, 1); // Higher intensity for ambient light
-      scene.add(ambientLight);
-
-      // Create a sphere for the light source
-      const lightGeometry = new THREE.SphereGeometry(0.5, 16, 16);
-      const lightMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-      const lightMesh = new THREE.Mesh(lightGeometry, lightMaterial);
-      light.add(lightMesh);
-
-      // Create the scallop body
-      const scallopGeometry = new THREE.SphereGeometry(10, 32, 16);
-      const scallopMaterial = new THREE.MeshLambertMaterial({
-        color: 0xf5deb3,
-        wireframe: false,
-      });
-      const scallop = new THREE.Mesh(scallopGeometry, scallopMaterial);
-      scallop.scale.set(1, 0.6, 1);
-      scene.add(scallop);
-      const debugRay = new THREE.ArrowHelper(
-        raycaster.ray.direction,
-        raycaster.ray.origin,
-        10,
-        0xff0000
-      );
-      scene.add(debugRay);
-      // Add the scallop's eyes along the midsection (equator of the ovoid)
-      const numEyes = 20; // Reduced for clarity
-      const eyeGroup = new THREE.Group();
-      const eyeBeams = [];
-
-      for (let i = 0; i < numEyes; i++) {
-        // Position eyes along the equator of the ovoid
-        const angle = (i / numEyes) * Math.PI * 2; // Spread evenly around the equator
-        const x = 10 * Math.cos(angle); // Radius along x-axis
-        const y = 0; // Centered on midsection
-        const z = 10 * Math.sin(angle); // Radius along z-axis
-
-        // Create an eye. The eye is in the middle
-        const eyeGeometry = new THREE.SphereGeometry(0.3, 16, 16);
-        const eyeMaterial = new THREE.MeshPhongMaterial({
-          color: 0x000000,
-          emissive: 0x000000,
-        });
-        const eye = new THREE.Mesh(eyeGeometry, eyeMaterial);
-
-        // Position the eye and add it to the group
-        eye.position.set(x, y, z);
-
-        // Base eye geometry
-        eye.castShadow = true;
-
-        // Add the mirror (m) at the back of the eye
-        const mirrorGeometry = new THREE.SphereGeometry(0.8, 32, 32);
-        const mirrorMaterial = new THREE.MeshStandardMaterial({
+    for (let i = 0; i < particleCount; i++) {
+      const particle = new THREE.Mesh(
+        new THREE.SphereGeometry(0.1, 8, 8),
+        new THREE.MeshBasicMaterial({
           color: 0xffffff,
-          metalness: 1,
-          roughness: 0,
-          side: THREE.BackSide, // Internal reflection
-        });
-        const mirror = new THREE.Mesh(mirrorGeometry, mirrorMaterial);
-        mirror.position.set(0, 0, 0); // Slightly recessed mirror
-        eye.add(mirror);
-
-        // Add the distal retina (r)
-        const distalRetinaGeometry = new THREE.SphereGeometry(0.7, 32, 32);
-        const distalRetinaMaterial = new THREE.MeshBasicMaterial({
-          color: 0x4e2a84, // Purple
-          opacity: 0.7,
+          opacity: 0.6,
           transparent: true,
-          side: THREE.BackSide,
-        });
-        const distalRetina = new THREE.Mesh(
-          distalRetinaGeometry,
-          distalRetinaMaterial
-        );
-        distalRetina.position.set(0, 0, 0); // Retina floats inside
-        eye.add(distalRetina);
-
-        // Add the proximal retina (inner retina)
-        const proximalRetinaGeometry = new THREE.SphereGeometry(0.6, 32, 32);
-        const proximalRetinaMaterial = new THREE.MeshBasicMaterial({
-          color: 0xff4500, // Deeper red
-          opacity: 0.5,
-          transparent: true,
-          side: THREE.BackSide,
-        });
-        const proximalRetina = new THREE.Mesh(
-          proximalRetinaGeometry,
-          proximalRetinaMaterial
-        );
-        proximalRetina.position.set(0, 0, 0);
-        eye.add(proximalRetina);
-
-        // Add the very weakly refracting gelatinous lens (l)
-        const lensGeometry = new THREE.SphereGeometry(0.9, 32, 32); // Slightly larger than retina
-        const lensMaterial = new THREE.MeshStandardMaterial({
-          color: 0xeeeeee, // Light grey for weak refraction
-          opacity: 0.3,
-          transparent: true,
-        });
-        const lens = new THREE.Mesh(lensGeometry, lensMaterial);
-        lens.position.set(0, 0, 0);
-        eye.add(lens);
-
-        // Add the thin blue coating (o) around the edges with an open front
-        const blueCoatingGeometry = new THREE.SphereGeometry(
-          1.1,
-          64,
-          64,
-          0,
-          Math.PI * 2,
-          Math.PI * 0.6,
-          0,
-          Math.PI
-        );
-        const blueCoatingMaterial = new THREE.MeshStandardMaterial({
-          color: 0x007bff, // Bright blue
-          emissive: 0x0033aa, // Subtle glow from the edges
-          emissiveIntensity: 0.5, // Glow intensity
-          metalness: 0.7,
-          roughness: 0.3,
-          opacity: 0.95,
-          transparent: true,
-        });
-        const blueCoating = new THREE.Mesh(
-          blueCoatingGeometry,
-          blueCoatingMaterial
-        );
-        blueCoating.position.set(0, 0, 0); // Centered around the eye
-        eye.add(blueCoating);
-
-        // Outer glow layer for additional visibility
-        const outerGlowGeometry = new THREE.SphereGeometry(1.15, 64, 64);
-        const outerGlowMaterial = new THREE.MeshBasicMaterial({
-          color: 0x007bff, // Bright blue
-          opacity: 0.4, // Semi-transparent
-          transparent: true,
-        });
-        const outerGlow = new THREE.Mesh(outerGlowGeometry, outerGlowMaterial);
-        eye.add(outerGlow);
-
-        // Spotlight to emphasize the blue coating
-        // Spotlight to emphasize the blue coating
-        const spotlight = new THREE.SpotLight(0xffffff, 1.5); // Bright white light
-        spotlight.position.set(0, 0, 3); // Position slightly in front of the eye
-        spotlight.target = eye; // Target the eye
-        spotlight.angle = Math.PI / 8; // Narrow spotlight beam
-        spotlight.penumbra = 0.2; // Softer edges
-        spotlight.distance = 15; // Limit the range of the light
-        eye.add(spotlight);
-        scene.add(spotlight.target); // Ensure target is part of the scene
-
-        // Add the entire eye to the scene
-        scene.add(eye);
-
-        eyeGroup.add(eye);
-
-        // Create a beam (ray) for each eye
-        const beamGeometry = new THREE.CylinderGeometry(0.05, 0.05, 30, 8);
-        const beamMaterial = new THREE.MeshBasicMaterial({
-          color: 0x00ff00,
-          opacity: 0.5,
-          transparent: true,
-        });
-        const beam = new THREE.Mesh(beamGeometry, beamMaterial);
-        const eyeDirection = new THREE.Vector3(x, y, z).normalize(); // Normalize to get unit vector
-        const perpendicularDirection = new THREE.Vector3(
-          -eyeDirection.z,
-          0,
-          eyeDirection.x
-        ); // Perpendicular in X-Z plane
-
-        // use x y z to rotate the beat around the x axis but the angle should be calculated based on their posiion
-        beam.scale.set(0.1, 0.1, 0.1); // Adjust length as needed
-        beam.rotation.x = Math.PI / 2;
-        beam.rotation.z = Math.atan2(eyeDirection.x, -eyeDirection.z);
-
-        // beam should only point away from the eye
-        beam.position.set(x, y, z); // Position the beam at the eye
-
-        scene.add(beam);
-        eyeBeams.push(beam);
-      }
-
-      scene.add(eyeGroup);
-
-      // Create the top and bottom shells
-      const shellTopGeometry = new THREE.SphereGeometry(
-        10,
-        32,
-        16,
-        0,
-        Math.PI * 2,
-        0,
-        Math.PI / 2
+        })
       );
-      const shellBottomGeometry = new THREE.SphereGeometry(
-        10,
-        32,
-        16,
-        0,
-        Math.PI * 2,
-        Math.PI / 2,
-        Math.PI / 2
+      particle.position.set(
+        Math.random() * 50 - 25,
+        Math.random() * 50 - 25,
+        Math.random() * 50 - 25
       );
-      const shellMaterial = new THREE.MeshLambertMaterial({
-        color: 0x996633,
-        wireframe: false,
+      particles.add(particle);
+    }
+    scene.add(particles);
+
+    // Animate particles
+    function animateParticles() {
+      particles.children.forEach((particle) => {
+        particle.position.y += 0.01; // Slow upward drift
+        if (particle.position.y > 25) particle.position.y = -25;
       });
+    }
 
-      const shellTop = new THREE.Mesh(shellTopGeometry, shellMaterial);
-      const shellBottom = new THREE.Mesh(shellBottomGeometry, shellMaterial);
-      shellTop.position.y = 2; // Position the top shell
-      shellBottom.position.y = -2; // Position the bottom shell
-      shellTop.scale.set(1, 0.6, 1); // Flatten the top shell
-      shellBottom.scale.set(1, 0.6, 1); // Flatten the bottom shell
-      scene.add(shellTop);
-      scene.add(shellBottom);
+    // Restore camera view
+    function resetCameraView() {
+      new TWEEN.Tween(camera.position)
+        .to({ x: 0, y: 0, z: 30 }, 1000)
+        .easing(TWEEN.Easing.Cubic.Out)
+        .start();
+      if (eyeDetailText) {
+        document.body.removeChild(eyeDetailText);
+        eyeDetailText = null;
+      }
+    }
 
-      // Set up camera position
-      camera.position.z = 30;
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
 
-      // Add orbit controls for dragging and zooming
-      const controls = new THREE.OrbitControls(camera, renderer.domElement);
-      controls.enableDamping = true; // Smooth dragging
-      controls.dampingFactor = 0.05;
+    scene.background = new THREE.Color(0x1f3b5f); // Darker blue for underwater effect
+    scene.fog = new THREE.Fog(0x1f3b5f, 10, 100); // Underwater fog
 
-      let isShellOpen = false; // Flag to track if the shell is open
-      let isAnimating = false; // Flag to check if the shell is in the process of opening/closing
+    // Add lighting to the scene
 
-      // Button to toggle shell opening and closing
-      document.getElementById("toggleShell").addEventListener("click", () => {
-        if (!isAnimating) {
-          isShellOpen = !isShellOpen; // Toggle shell state
-          isAnimating = true; // Start animation
+    const ambientLight = new THREE.AmbientLight(0xeae0c8, 1); // Higher intensity for ambient light
+    scene.add(ambientLight);
+
+    // Create the scallop body
+    const scallopGeometry = new THREE.SphereGeometry(10, 32, 16);
+    const scallopMaterial = new THREE.MeshLambertMaterial({
+      color: 0xf5deb3,
+      wireframe: false,
+    });
+    const scallop = new THREE.Mesh(scallopGeometry, scallopMaterial);
+    scallop.scale.set(1, 0.6, 1);
+    scene.add(scallop);
+    // Add the scallop's eyes along the midsection (equator of the ovoid)
+    const numEyes = 20; // Reduced for clarity
+    const eyeGroup = new THREE.Group();
+    const eyeBeams = [];
+    const spotlights = [];
+    for (let i = 0; i < numEyes; i++) {
+      // Position eyes along the equator of the ovoid
+      const angle = (i / numEyes) * Math.PI * 2; // Spread evenly around the equator
+      const x = 10 * Math.cos(angle); // Radius along x-axis
+      const y = 0; // Centered on midsection
+      const z = 10 * Math.sin(angle); // Radius along z-axis
+
+      // Create an eye. The eye is in the middle
+      const eyeGeometry = new THREE.SphereGeometry(0.3, 16, 16);
+      const eyeMaterial = new THREE.MeshPhongMaterial({
+        color: 0x000000,
+        emissive: 0x000000,
+      });
+      const eye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+
+      // Position the eye and add it to the group
+      eye.position.set(x, y, z);
+
+      // Base eye geometry
+      eye.castShadow = true;
+
+      // Add the mirror (m) at the back of the eye
+      const mirrorGeometry = new THREE.SphereGeometry(0.8, 32, 32);
+      const mirrorMaterial = new THREE.MeshStandardMaterial({
+        color: 0xffffff,
+        metalness: 1,
+        roughness: 0,
+        side: THREE.BackSide, // Internal reflection
+      });
+      const mirror = new THREE.Mesh(mirrorGeometry, mirrorMaterial);
+      mirror.position.set(0, 0, 0); // Slightly recessed mirror
+      eye.add(mirror);
+
+      // Add the distal retina (r)
+      const distalRetinaGeometry = new THREE.SphereGeometry(0.7, 32, 32);
+      const distalRetinaMaterial = new THREE.MeshBasicMaterial({
+        color: 0x4e2a84, // Purple
+        opacity: 0.7,
+        transparent: true,
+        side: THREE.BackSide,
+      });
+      const distalRetina = new THREE.Mesh(
+        distalRetinaGeometry,
+        distalRetinaMaterial
+      );
+      distalRetina.position.set(0, 0, 0); // Retina floats inside
+      eye.add(distalRetina);
+
+      // Add the proximal retina (inner retina)
+      const proximalRetinaGeometry = new THREE.SphereGeometry(0.6, 32, 32);
+      const proximalRetinaMaterial = new THREE.MeshBasicMaterial({
+        color: 0xff4500, // Deeper red
+        opacity: 0.5,
+        transparent: true,
+        side: THREE.BackSide,
+      });
+      const proximalRetina = new THREE.Mesh(
+        proximalRetinaGeometry,
+        proximalRetinaMaterial
+      );
+      proximalRetina.position.set(0, 0, 0);
+      eye.add(proximalRetina);
+
+      // Add the very weakly refracting gelatinous lens (l)
+      const lensGeometry = new THREE.SphereGeometry(0.9, 32, 32); // Slightly larger than retina
+      const lensMaterial = new THREE.MeshStandardMaterial({
+        color: 0xeeeeee, // Light grey for weak refraction
+        opacity: 0.3,
+        transparent: true,
+      });
+      const lens = new THREE.Mesh(lensGeometry, lensMaterial);
+      lens.position.set(0, 0, 0);
+      eye.add(lens);
+
+      // Add the thin blue coating (o) around the edges with an open front
+      const blueCoatingGeometry = new THREE.SphereGeometry(
+        1.1,
+        64,
+        64,
+        0,
+        Math.PI * 2,
+        Math.PI * 0.6,
+        0,
+        Math.PI
+      );
+      const blueCoatingMaterial = new THREE.MeshStandardMaterial({
+        color: 0x007bff, // Bright blue
+        emissive: 0x0033aa, // Subtle glow from the edges
+        emissiveIntensity: 0.5, // Glow intensity
+        metalness: 0.7,
+        roughness: 0.3,
+        opacity: 0.95,
+        transparent: true,
+      });
+      const blueCoating = new THREE.Mesh(
+        blueCoatingGeometry,
+        blueCoatingMaterial
+      );
+      blueCoating.position.set(0, 0, 0); // Centered around the eye
+      eye.add(blueCoating);
+
+      // Outer glow layer for additional visibility
+      const outerGlowGeometry = new THREE.SphereGeometry(1.15, 64, 64);
+      const outerGlowMaterial = new THREE.MeshBasicMaterial({
+        color: 0x007bff, // Bright blue
+        opacity: 0.4, // Semi-transparent
+        transparent: true,
+      });
+      const outerGlow = new THREE.Mesh(outerGlowGeometry, outerGlowMaterial);
+      eye.add(outerGlow);
+
+      // Spotlight to emphasize the blue coating
+      // Spotlight to emphasize the blue coating
+      const spotlight = new THREE.SpotLight(0xffffff, 1.5); // Bright white light
+      spotlight.position.set(0, 0, 3); // Position slightly in front of the eye
+      spotlight.target = eye; // Target the eye
+      spotlight.angle = Math.PI / 8; // Narrow spotlight beam
+      spotlight.penumbra = 0.2; // Softer edges
+      spotlight.distance = 15; // Limit the range of the light
+      eye.add(spotlight);
+      scene.add(spotlight.target); // Ensure target is part of the scene
+      spotlights.push(spotlight); // Add to the spotlight group
+      // Add the entire eye to the scene
+      scene.add(eye);
+
+      eyeGroup.add(eye);
+
+      // Create a beam (ray) for each eye
+      const beamGeometry = new THREE.CylinderGeometry(0.05, 0.05, 30, 8);
+      const beamMaterial = new THREE.MeshBasicMaterial({
+        color: 0x00ff00,
+        opacity: 0.5,
+        transparent: true,
+      });
+      const beam = new THREE.Mesh(beamGeometry, beamMaterial);
+      const eyeDirection = new THREE.Vector3(x, y, z).normalize(); // Normalize to get unit vector
+      const perpendicularDirection = new THREE.Vector3(
+        -eyeDirection.z,
+        0,
+        eyeDirection.x
+      ); // Perpendicular in X-Z plane
+
+      // use x y z to rotate the beat around the x axis but the angle should be calculated based on their posiion
+      beam.scale.set(0.1, 0.1, 0.1); // Adjust length as needed
+      beam.rotation.x = Math.PI / 2;
+      beam.rotation.z = Math.atan2(eyeDirection.x, -eyeDirection.z);
+
+      // beam should only point away from the eye
+      beam.position.set(x, y, z); // Position the beam at the eye
+
+      scene.add(beam);
+      eyeBeams.push(beam);
+    }
+
+    scene.add(eyeGroup);
+
+    // Create the top and bottom shells
+    const shellTopGeometry = new THREE.SphereGeometry(
+      10,
+      32,
+      16,
+      0,
+      Math.PI * 2,
+      0,
+      Math.PI / 2
+    );
+    const shellBottomGeometry = new THREE.SphereGeometry(
+      10,
+      32,
+      16,
+      0,
+      Math.PI * 2,
+      Math.PI / 2,
+      Math.PI / 2
+    );
+    const shellMaterial = new THREE.MeshLambertMaterial({
+      color: 0x996633,
+      wireframe: false,
+    });
+
+    const shellTop = new THREE.Mesh(shellTopGeometry, shellMaterial);
+    const shellBottom = new THREE.Mesh(shellBottomGeometry, shellMaterial);
+    shellTop.position.y = 2; // Position the top shell
+    shellBottom.position.y = -2; // Position the bottom shell
+    shellTop.scale.set(1, 0.6, 1); // Flatten the top shell
+    shellBottom.scale.set(1, 0.6, 1); // Flatten the bottom shell
+    scene.add(shellTop);
+    scene.add(shellBottom);
+
+    // Set up camera position
+    camera.position.z = 30;
+
+    // Add orbit controls for dragging and zooming
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true; // Smooth dragging
+    controls.dampingFactor = 0.05;
+
+    let isShellOpen = false; // Flag to track if the shell is open
+    let isAnimating = false; // Flag to check if the shell is in the process of opening/closing
+
+    // Button to toggle shell opening and closing
+    document.getElementById("toggleShell").addEventListener("click", () => {
+      if (!isAnimating) {
+        isShellOpen = !isShellOpen; // Toggle shell state
+        isAnimating = true; // Start animation
+      }
+    });
+
+    // Raycasting setup
+    document.body.addEventListener(
+      "click",
+      (event) => {
+        // Calculate mouse position in normalized device coordinates
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+        raycaster.setFromCamera(mouse, camera);
+        const intersects = raycaster.intersectObjects(eyeGroup.children);
+        console.log("Intersections:", intersects); // Check if anything is detected
+        if (intersects.length > 0) {
+          const clickedEye = intersects[0].object;
+          if (clickedEye !== selectedEye) {
+            selectedEye = clickedEye;
+            zoomToEye(clickedEye);
+          } else {
+            resetCameraView();
+            selectedEye = null;
+          }
+        }
+      },
+      false
+    );
+
+    const scanToggle = document.getElementById("scanToggle");
+    scanToggle.addEventListener("change", (e) => {
+      eyeBeams.forEach((beam) => {
+        beam.visible = e.target.checked;
+      });
+    });
+
+
+    // Animate the light source with sinusoidal movement
+    // Light (Threat) setup
+    const light = new THREE.PointLight(0xff0000, 2, 50); // Intense red threat light
+
+    light.position.set(20, 25, 0); // Initial position
+
+    // Create a sphere for the light source
+    const lightGeometry = new THREE.SphereGeometry(0.5, 16, 16);
+    const lightMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+    const lightMesh = new THREE.Mesh(lightGeometry, lightMaterial);
+    light.add(lightMesh);
+
+    scene.add(light);
+    let time = 0; // For sinusoidal motion
+    let velocity = 0.00; // Default velocity
+    let scallopVelocity = 0.3; // Default velocity
+    // Get the slider from the DOM
+    const velocitySlider = document.getElementById("velocitySlider");
+
+    // Add an event listener to update velocity when the slider value changes
+    velocitySlider.addEventListener("input", (event) => {
+      velocity = parseFloat(event.target.value); // Update velocity with slider value
+      velocityValue.textContent = velocity.toFixed(2); // Update displayed value
+      console.log("Updated velocity:", velocity);
+    });
+
+    // Get the slider from the DOM
+    const scallopVelocitySlider = document.getElementById("scallopVelocitySlider");
+
+    // Add an event listener to update velocity when the slider value changes
+    scallopVelocitySlider.addEventListener("input", (event) => {
+      scallopVelocity = parseFloat(event.target.value); // Update velocity with slider value
+      scallopVelocityValue.textContent = scallopVelocity.toFixed(2); // Update displayed value
+      console.log("Updated scallop velocity:", scallopVelocity);
+    });
+
+    function animateThreat() {
+      // Update light position using sinusoidal motion
+      time += (velocity / 10); // Use the velocity value controlled by the slider
+      threat_x = light.position.x;
+      threat_y = light.position.y;
+      threat_z = light.position.z;
+
+      scallop_x = scallopGroup.position.x;
+      scallop_y = scallopGroup.position.y;
+      scallop_z = scallopGroup.position.z;
+
+      // direction vector
+      const direction = new THREE.Vector3(
+        scallop_x - threat_x,
+        scallop_y - threat_y,
+        scallop_z - threat_z
+      ).normalize();
+
+      if (velocity > 0.01) {
+        // Apply force to move the scallop away
+        light.position.add(direction.multiplyScalar(velocity)); // Move threat towards the scallop
+      }
+      // Threat detection logic
+      let trueCount = 0;
+
+      // Interactions with the environment
+      eyeGroup.children.forEach((eye, index) => {
+        // Calculate distance to the light (threat)
+        const distance = light.position.distanceTo(eye.position);
+
+        // Update emissive intensity based on proximity
+        const intensity = Math.max(0, 1 - distance / 20); // Inverse distance effect
+        eye.material.emissive.setRGB(intensity, 0, 0); // Red glow increases as threat nears
+
+        // Update beam animation
+        if (scanToggle.checked) {
+          const beam = eyeBeams[index];
+          const length = Math.sin(time + index) * 15 + 10; // Oscillating length
+          beam.scale.set(1, length, 1); // Scale the beam's Y-axis for a dynamic effect
         }
       });
 
-      // Raycasting setup
-      document.body.addEventListener(
-        "click",
-        (event) => {
-          // Calculate mouse position in normalized device coordinates
-          mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-          mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-          raycaster.setFromCamera(mouse, camera);
-          const intersects = raycaster.intersectObjects(eyeGroup.children);
-          console.log("Intersections:", intersects); // Check if anything is detected
-          if (intersects.length > 0) {
-            const clickedEye = intersects[0].object;
-            if (clickedEye !== selectedEye) {
-              selectedEye = clickedEye;
-              zoomToEye(clickedEye);
-            } else {
-              resetCameraView();
-              selectedEye = null;
-            }
-          }
-        },
-        false
+      // Additional: Change light intensity dynamically
+      light.intensity = 1.5 + 0.5 * Math.sin(time * 2); // Flickering effect
+    }
+
+    let previousScallopPosition = new THREE.Vector3();
+    function animateShell() {
+      // Determine if scallop should move based on threat proximity
+      threatPosition = light.position;
+      scallopPosition = scallopGroup.position;
+
+      // Check if the threat is close to the scallop
+      // compute cartesian distance
+      const distance = Math.sqrt(
+        Math.pow(scallopPosition.x - threatPosition.x, 2) +
+        Math.pow(scallopPosition.y - threatPosition.y, 2) +
+        Math.pow(scallopPosition.z - threatPosition.z, 2)
       );
 
-      const scanToggle = document.getElementById("scanToggle");
-      scanToggle.addEventListener("change", (e) => {
-        eyeBeams.forEach((beam) => {
-          beam.visible = e.target.checked;
-        });
-      });
+      // Check if the threat is close to the scallop
+      if (distance < 30) {
+        // Move the scallop away from the threat
+        const direction = new THREE.Vector3(
+          scallopPosition.x - threatPosition.x,
+          scallopPosition.y - threatPosition.y,
+          scallopPosition.z - threatPosition.z
+        ).normalize();
+        scallopGroup.position.add(direction.multiplyScalar(scallopVelocity)); // Move scallop away from threat
+        
+        // Open the shell to escape
+        isShellOpen = !isShellOpen;
+      }
 
-      // Animate the light source with sinusoidal movement
-      let time = 0; // Keeps track of time for sinusoidal motion
-      function animate() {
-        requestAnimationFrame(animate);
+      previousScallopPosition.copy(scallopGroup.position);
 
-        TWEEN.update();
-        // Update light position using sinusoidal motion
-        time += 0.02;
-        light.position.x = 15 * Math.sin(time); // Moves horizontally in a wave
-        light.position.y = 5 * Math.sin(time * 0.5); // Moves vertically slower
-        light.position.z = 15 * Math.cos(time); // Moves around the scallop
 
-        // Animate the shell opening/closing with discrete steps
-        if (isShellOpen) {
-          if (shellTop.position.y < 6) {
-            // Move top shell up
-            shellTop.position.y += 0.1;
-          } else {
-            isAnimating = false; // Stop animation when fully open
-          }
+      if (isShellOpen) {
+        if (shellTop.position.y < 6) {
+          // Move top shell up
+          shellTop.position.y += 0.3;
+
+          isAnimating = true; // Continue animation
         } else {
-          if (shellTop.position.y > 2) {
-            // Move top shell down
-            shellTop.position.y -= 0.1;
-          } else {
-            isAnimating = false; // Stop animation when fully closed
-          }
+          isAnimating = false; // Stop animation when fully open
         }
-
-        // Update eye brightness based on distance to light
-        eyeGroup.children.forEach((eye, index) => {
-          const distance = light.position.distanceTo(eye.position);
-          const intensity = Math.max(0, 1 - distance / 20); // Inverse distance effect
-          eye.material.emissive.setRGB(intensity, 0, 0); // Blue glow
-
-          // Animate the beams to extend outward
-          if (scanToggle.checked) {
-            const beam = eyeBeams[index];
-            const length = Math.sin(time + index) * 15 + 10; // Vary length for scanning effect
-            beam.scale.set(1, length, 1); // Stretch the beam
-          }
-        });
-
-        controls.update(); // Update orbit controls
-        renderer.render(scene, camera);
-        animateParticles();
+      } else {
+        if (shellTop.position.y > 2) {
+          // Move top shell down
+          shellTop.position.y -= 0.3;
+          isAnimating = true; // Continue animation
+        } else {
+          isAnimating = false; // Stop animation when fully closed
+        }
       }
 
-      animate();
 
-      // Handle resizing
-      window.addEventListener("resize", () => {
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
-      });
-    </script>
-  </body>
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+
+      TWEEN.update();
+      // Update light position using sinusoidal motion
+      animateThreat();
+      animateShell();
+      controls.update(); // Update orbit controls
+      renderer.render(scene, camera);
+      animateParticles();
+    }
+    const scallopGroup = new THREE.Group();
+    // Add shellTop, shellBottom, and scallopBody to the group
+    scallopGroup.add(shellTop);
+    scallopGroup.add(shellBottom);
+    scallopGroup.add(scallop);
+    scallopGroup.add(eyeGroup);
+    eyeBeams.forEach(element => {
+      scallopGroup.add(element);
+    });
+    spotlights.forEach(element => {
+      scallopGroup.add(element);
+    });
+    // Add the group to the scene
+    scene.add(scallopGroup);
+
+    animate();
+
+    // Handle resizing
+    window.addEventListener("resize", () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+    // Create a parent group for the scallop
+  </script>
+</body>
+
 </html>
