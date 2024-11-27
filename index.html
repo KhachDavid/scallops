@@ -93,6 +93,8 @@
     </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="OrbitControls.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/23.1.3/tween.umd.js"></script>
+
     <script>
       // Setup the scene, camera, and renderer
       const scene = new THREE.Scene();
@@ -103,6 +105,77 @@
         1000
       );
       const renderer = new THREE.WebGLRenderer();
+      const raycaster = new THREE.Raycaster();
+      const mouse = new THREE.Vector2();
+      let selectedEye = null;
+      let eyeDetailText = null;
+
+      // Function to animate the camera to focus on a specific eye
+      function zoomToEye(eye) {
+        const targetPosition = eye.position.clone();
+        const cameraTarget = new THREE.Vector3(
+          targetPosition.x,
+          targetPosition.y,
+          targetPosition.z
+        ).add(targetPosition.clone().normalize().multiplyScalar(5)); // Offset slightly for better visibility
+
+        // Animate camera movement
+        new TWEEN.Tween(camera.position)
+          .to(
+            {
+              x: cameraTarget.x,
+              y: cameraTarget.y,
+              z: cameraTarget.z,
+            },
+            1000 // Animation duration
+          )
+          .easing(TWEEN.Easing.Cubic.Out)
+          .start();
+
+        // Add inside-eye detail visualization
+        // Add inside-eye detail visualization
+
+        // Add sidebar for explaining layers of the eye
+        let eyeSidebar = document.createElement("div");
+        eyeSidebar.style.color = "white";
+        eyeSidebar.style.backgroundColor = "rgba(0, 0, 0, 0.8)";
+        eyeSidebar.style.width = "300px";
+        eyeSidebar.style.padding = "15px";
+        eyeSidebar.style.borderRadius = "10px";
+        eyeSidebar.style.position = "absolute";
+        eyeSidebar.style.top = "50px";
+        eyeSidebar.style.right = "20px";
+        eyeSidebar.style.fontFamily = "Arial, sans-serif";
+        eyeSidebar.style.boxShadow = "0 4px 8px rgba(0, 0, 0, 0.3)";
+
+        // Populate sidebar with explanations
+        eyeSidebar.innerHTML = `
+  <h2>Layers of the Scallop's Eye</h2>
+  <ul>
+    <li><strong style="color: #007bff">Lens:</strong> Although they do not have a typical crystalline lens capable of strong refraction, they do have a gelatinous region at the front of their eye (roughly analogous to the vitreous humour in a human eye) that acts as a very weakly refracting lens. Light entering the scallop eye is refracted, but not to the extent that it forms a clear image on the back of the eye.</li>
+    <li><strong style="color: #4E2A84">Distal Retina:</strong> The outer layer of the retina that detects bright light and provides a detailed image.</li>
+    <li><strong style="color: #ff4500">Proximal Retina:</strong> The inner layer of the retina that detects dim light and helps in depth perception.</li>
+    <li><strong style="color: #62361b">Mirror:</strong> A concave structure that reflects light back through the retinas, enhancing sensitivity and enabling a wide field of vision.</li>
+  </ul>
+  <p>The scallop's eye uses both retinas and the mirror to create a unique optical system, allowing it to detect predators and food efficiently.</p>
+`;
+
+        // Append sidebar to the document
+        document.body.appendChild(eyeSidebar);
+      }
+
+      // Restore camera view
+      function resetCameraView() {
+        new TWEEN.Tween(camera.position)
+          .to({ x: 0, y: 0, z: 30 }, 1000)
+          .easing(TWEEN.Easing.Cubic.Out)
+          .start();
+        if (eyeDetailText) {
+          document.body.removeChild(eyeDetailText);
+          eyeDetailText = null;
+        }
+      }
+
       renderer.setSize(window.innerWidth, window.innerHeight);
       document.body.appendChild(renderer.domElement);
 
@@ -131,7 +204,13 @@
       const scallop = new THREE.Mesh(scallopGeometry, scallopMaterial);
       scallop.scale.set(1, 0.6, 1);
       scene.add(scallop);
-
+      const debugRay = new THREE.ArrowHelper(
+        raycaster.ray.direction,
+        raycaster.ray.origin,
+        10,
+        0xff0000
+      );
+      scene.add(debugRay);
       // Add the scallop's eyes along the midsection (equator of the ovoid)
       const numEyes = 20; // Reduced for clarity
       const eyeGroup = new THREE.Group();
@@ -144,7 +223,7 @@
         const y = 0; // Centered on midsection
         const z = 10 * Math.sin(angle); // Radius along z-axis
 
-        // Create an eye
+        // Create an eye. The eye is in the middle
         const eyeGeometry = new THREE.SphereGeometry(0.3, 16, 16);
         const eyeMaterial = new THREE.MeshPhongMaterial({
           color: 0x000000,
@@ -154,6 +233,114 @@
 
         // Position the eye and add it to the group
         eye.position.set(x, y, z);
+
+        // Base eye geometry
+        eye.castShadow = true;
+
+        // Add the mirror (m) at the back of the eye
+        const mirrorGeometry = new THREE.SphereGeometry(0.8, 32, 32);
+        const mirrorMaterial = new THREE.MeshStandardMaterial({
+          color: 0xffffff,
+          metalness: 1,
+          roughness: 0,
+          side: THREE.BackSide, // Internal reflection
+        });
+        const mirror = new THREE.Mesh(mirrorGeometry, mirrorMaterial);
+        mirror.position.set(0, 0, 0); // Slightly recessed mirror
+        eye.add(mirror);
+
+        // Add the distal retina (r)
+        const distalRetinaGeometry = new THREE.SphereGeometry(0.7, 32, 32);
+        const distalRetinaMaterial = new THREE.MeshBasicMaterial({
+          color: 0x4E2A84, // Purple
+          opacity: 0.7,
+          transparent: true,
+          side: THREE.BackSide,
+        });
+        const distalRetina = new THREE.Mesh(
+          distalRetinaGeometry,
+          distalRetinaMaterial
+        );
+        distalRetina.position.set(0, 0, 0); // Retina floats inside
+        eye.add(distalRetina);
+
+        // Add the proximal retina (inner retina)
+        const proximalRetinaGeometry = new THREE.SphereGeometry(0.6, 32, 32);
+        const proximalRetinaMaterial = new THREE.MeshBasicMaterial({
+          color: 0xff4500, // Deeper red
+          opacity: 0.5,
+          transparent: true,
+          side: THREE.BackSide,
+        });
+        const proximalRetina = new THREE.Mesh(
+          proximalRetinaGeometry,
+          proximalRetinaMaterial
+        );
+        proximalRetina.position.set(0, 0, 0);
+        eye.add(proximalRetina);
+
+        // Add the very weakly refracting gelatinous lens (l)
+        const lensGeometry = new THREE.SphereGeometry(0.9, 32, 32); // Slightly larger than retina
+        const lensMaterial = new THREE.MeshStandardMaterial({
+          color: 0xeeeeee, // Light grey for weak refraction
+          opacity: 0.3,
+          transparent: true,
+        });
+        const lens = new THREE.Mesh(lensGeometry, lensMaterial);
+        lens.position.set(0, 0, 0);
+        eye.add(lens);
+
+        // Add the thin blue coating (o) around the edges with an open front
+        const blueCoatingGeometry = new THREE.SphereGeometry(
+          1.1,
+          64,
+          64,
+          0,
+          Math.PI * 2,
+          Math.PI * 0.6,
+          0,
+          Math.PI
+        );
+        const blueCoatingMaterial = new THREE.MeshStandardMaterial({
+          color: 0x007bff, // Bright blue
+          emissive: 0x0033aa, // Subtle glow from the edges
+          emissiveIntensity: 0.5, // Glow intensity
+          metalness: 0.7,
+          roughness: 0.3,
+          opacity: 0.95,
+          transparent: true,
+        });
+        const blueCoating = new THREE.Mesh(
+          blueCoatingGeometry,
+          blueCoatingMaterial
+        );
+        blueCoating.position.set(0, 0, 0); // Centered around the eye
+        eye.add(blueCoating);
+
+        // Outer glow layer for additional visibility
+        const outerGlowGeometry = new THREE.SphereGeometry(1.15, 64, 64);
+        const outerGlowMaterial = new THREE.MeshBasicMaterial({
+          color: 0x007bff, // Bright blue
+          opacity: 0.4, // Semi-transparent
+          transparent: true,
+        });
+        const outerGlow = new THREE.Mesh(outerGlowGeometry, outerGlowMaterial);
+        eye.add(outerGlow);
+
+        // Spotlight to emphasize the blue coating
+        // Spotlight to emphasize the blue coating
+        const spotlight = new THREE.SpotLight(0xffffff, 1.5); // Bright white light
+        spotlight.position.set(0, 0, 3); // Position slightly in front of the eye
+        spotlight.target = eye; // Target the eye
+        spotlight.angle = Math.PI / 8; // Narrow spotlight beam
+        spotlight.penumbra = 0.2; // Softer edges
+        spotlight.distance = 15; // Limit the range of the light
+        eye.add(spotlight);
+        scene.add(spotlight.target); // Ensure target is part of the scene
+
+        // Add the entire eye to the scene
+        scene.add(eye);
+
         eyeGroup.add(eye);
 
         // Create a beam (ray) for each eye
@@ -237,6 +424,30 @@
         }
       });
 
+      // Raycasting setup
+      document.body.addEventListener(
+        "click",
+        (event) => {
+          // Calculate mouse position in normalized device coordinates
+          mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+          mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+          raycaster.setFromCamera(mouse, camera);
+          const intersects = raycaster.intersectObjects(eyeGroup.children);
+          console.log("Intersections:", intersects); // Check if anything is detected
+          if (intersects.length > 0) {
+            const clickedEye = intersects[0].object;
+            if (clickedEye !== selectedEye) {
+              selectedEye = clickedEye;
+              zoomToEye(clickedEye);
+            } else {
+              resetCameraView();
+              selectedEye = null;
+            }
+          }
+        },
+        false
+      );
+
       const scanToggle = document.getElementById("scanToggle");
       scanToggle.addEventListener("change", (e) => {
         eyeBeams.forEach((beam) => {
@@ -249,6 +460,7 @@
       function animate() {
         requestAnimationFrame(animate);
 
+        TWEEN.update();
         // Update light position using sinusoidal motion
         time += 0.02;
         light.position.x = 15 * Math.sin(time); // Moves horizontally in a wave
