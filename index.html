@@ -80,6 +80,29 @@
       display: inline-block;
       margin-left: 5px;
     }
+
+    /* Catalog styling */
+    #catalog {
+      position: fixed;
+      bottom: 10px;
+      left: 10px;
+      display: flex;
+      flex-direction: row;
+      gap: 10px;
+      z-index: 20;
+    }
+
+    .catalog-card {
+      width: 100px;
+      height: 100px;
+      background-color: rgba(255, 255, 255, 0.7);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3);
+    }
   </style>
 </head>
 
@@ -99,7 +122,8 @@
     </div>
     <div>
       <label for="scallopVelocitySlider">Scallop Velocity</label>
-      <input id="scallopVelocitySlider" type="range" min="0.001" max="1" step="0.001" value="0.3" style="width: 200px" />
+      <input id="scallopVelocitySlider" type="range" min="0.001" max="1" step="0.001" value="0.3"
+        style="width: 200px" />
       <span id="scallopVelocityValue">0.3</span>
     </div>
   </div>
@@ -109,6 +133,14 @@
       Drag to rotate, scroll to zoom, observe the scallop's reaction to light!
     </p>
   </div>
+
+  <!-- Catalog Section -->
+  <div id="catalog">
+    <div class="catalog-card" id="card1">Sinoid Threat</div>
+    <div class="catalog-card" id="card2">Linear Threat</div>
+    <div class="catalog-card" id="card3">Threat 3</div>
+  </div>
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="OrbitControls.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/23.1.3/tween.umd.js"></script>
@@ -125,6 +157,7 @@
     const renderer = new THREE.WebGLRenderer();
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
+    const threats = {};
     let selectedEye = null;
     let eyeDetailText = null;
 
@@ -500,9 +533,12 @@
     const lightMesh = new THREE.Mesh(lightGeometry, lightMaterial);
     light.add(lightMesh);
 
+    // Add the light to the dictionary of threats
+    // key should be the velocity
+    threats['default'] = [light, 0.02];
     scene.add(light);
     let time = 0; // For sinusoidal motion
-    let velocity = 0.00; // Default velocity
+    let velocity = 0.00; // Default1 velocity
     let scallopVelocity = 0.3; // Default velocity
     // Get the slider from the DOM
     const velocitySlider = document.getElementById("velocitySlider");
@@ -511,6 +547,7 @@
     velocitySlider.addEventListener("input", (event) => {
       velocity = parseFloat(event.target.value); // Update velocity with slider value
       velocityValue.textContent = velocity.toFixed(2); // Update displayed value
+      threats[light] = [light, velocity];
       console.log("Updated velocity:", velocity);
     });
 
@@ -546,8 +583,6 @@
         // Apply force to move the scallop away
         light.position.add(direction.multiplyScalar(velocity)); // Move threat towards the scallop
       }
-      // Threat detection logic
-      let trueCount = 0;
 
       // Interactions with the environment
       eyeGroup.children.forEach((eye, index) => {
@@ -572,56 +607,59 @@
 
     let previousScallopPosition = new THREE.Vector3();
     function animateShell() {
-      // Determine if scallop should move based on threat proximity
-      threatPosition = light.position;
-      scallopPosition = scallopGroup.position;
+      // `lights` is a dictionary where keys are light names and values are their positions
+      const scallopPosition = scallopGroup.position;
+      let netEscapeDirection = new THREE.Vector3(0, 0, 0); // Initialize escape direction vector
 
-      // Check if the threat is close to the scallop
-      // compute cartesian distance
-      const distance = Math.sqrt(
-        Math.pow(scallopPosition.x - threatPosition.x, 2) +
-        Math.pow(scallopPosition.y - threatPosition.y, 2) +
-        Math.pow(scallopPosition.z - threatPosition.z, 2)
-      );
+      // Iterate over all lights to compute escape directions
+      for (const lightKey in threats) {
+        const threatPosition = threats[lightKey][0].position; // Get the position of the current light
 
-      // Check if the threat is close to the scallop
-      if (distance < 30) {
-        // Move the scallop away from the threat
-        const direction = new THREE.Vector3(
-          scallopPosition.x - threatPosition.x,
-          scallopPosition.y - threatPosition.y,
-          scallopPosition.z - threatPosition.z
-        ).normalize();
-        scallopGroup.position.add(direction.multiplyScalar(scallopVelocity)); // Move scallop away from threat
-        
-        // Open the shell to escape
+        // Compute the distance between the scallop and the current light
+        const distance = scallopPosition.distanceTo(threatPosition);
+
+        if (distance < 30) { // Check if this light is within the "threat zone"
+          // Calculate the escape direction from this light
+          const escapeDirection = new THREE.Vector3(
+            scallopPosition.x - threatPosition.x,
+            scallopPosition.y - threatPosition.y,
+            scallopPosition.z - threatPosition.z
+          ).normalize();
+
+          // Weight the direction by the inverse of the distance (closer threats have more influence)
+          netEscapeDirection.add(escapeDirection.multiplyScalar(1 / distance));
+        }
+      }
+
+      // Move the scallop away if there are threats
+      if (netEscapeDirection.length() > 0) {
+        scallopGroup.position.add(netEscapeDirection.normalize().multiplyScalar(scallopVelocity));
+
+        // Toggle shell state (open or close) when escaping
         isShellOpen = !isShellOpen;
       }
 
       previousScallopPosition.copy(scallopGroup.position);
 
-
+      // Animate the shell opening or closing
       if (isShellOpen) {
         if (shellTop.position.y < 6) {
-          // Move top shell up
-          shellTop.position.y += 0.3;
-
-          isAnimating = true; // Continue animation
+          shellTop.position.y += 0.3; // Move top shell up
+          isAnimating = true;
         } else {
-          isAnimating = false; // Stop animation when fully open
+          isAnimating = false;
         }
       } else {
         if (shellTop.position.y > 2) {
-          // Move top shell down
-          shellTop.position.y -= 0.3;
-          isAnimating = true; // Continue animation
+          shellTop.position.y -= 0.3; // Move top shell down
+          isAnimating = true;
         } else {
-          isAnimating = false; // Stop animation when fully closed
+          isAnimating = false;
         }
       }
-
-
     }
+
+
 
     function animate() {
       requestAnimationFrame(animate);
@@ -658,6 +696,167 @@
       renderer.setSize(window.innerWidth, window.innerHeight);
     });
     // Create a parent group for the scallop
+    // Animate sinusoidal orbital threat
+    function createOrbitalRing(type) {
+      const light = new THREE.PointLight(0xff0000, 2, 50); // Intense red threat light
+      scallop_position = scallopGroup.position;
+      light.position.set(scallop_position.x - 20, scallop_position.y + 25, scallop_position.z); // Initial position
+      // Create a sphere for the light source
+      const lightGeometry = new THREE.SphereGeometry(0.5, 16, 16);
+      const lightMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+      const lightMesh = new THREE.Mesh(lightGeometry, lightMaterial);
+      light.add(lightMesh);
+      scene.add(light);
+
+      let time = 0;
+      let speed = 0.00;
+      threats[type] = [light, speed];
+      // Animating the ring in a sinusoidal motion
+      function animateRing() {
+        time += speed;
+        if (speed > 0.01) {
+          light.position.x = 15 * Math.sin(time); // Moves horizontally in a wave
+          light.position.y = 5 * Math.sin(time * 0.5); // Moves vertically slower
+          light.position.z = 15 * Math.cos(time); // Moves around the scallop
+        }
+        requestAnimationFrame(animateRing);
+      }
+
+      // Add a slider to control the speed of the orbital ring
+      const speedSlider = document.createElement("input");
+      speedSlider.type = "range";
+      speedSlider.min = "0.001";
+      speedSlider.max = "0.5";
+      speedSlider.step = "0.001";
+      speedSlider.value = "0.00";
+      speedSlider.style.width = "200px";
+      speedSlider.style.marginTop = "10px";
+      speedSlider.addEventListener("input", (event) => {
+        speed = parseFloat(event.target.value);
+        speedValue.textContent = speed.toFixed(2);
+        threats[type] = [light, speed];
+      });
+      // add a div to side bar
+      const sidebar = document.getElementById("sidebar");
+
+      // add a div
+      const speedDiv = document.createElement("div");
+      // add a label to the div
+      const speedLabel = document.createElement("label");
+      speedLabel.textContent = type + " Velocity";
+      speedLabel.style.color = "white";
+      speedDiv.appendChild(speedLabel);
+      speedDiv.appendChild(speedSlider);
+
+      // add a span to show the value of the slider
+      const speedValue = document.createElement("span");
+      speedValue.id = "speedValue";
+      speedValue.textContent = "0.00";
+      speedValue.style.color = "white";
+      speedDiv.appendChild(speedValue);
+      sidebar.appendChild(speedDiv);
+      animateRing();
+    }
+
+    // Animate linear threat
+    function createLinear(type) {
+      const light = new THREE.PointLight(0xff0000, 2, 50); // Intense red threat light
+      scallop_position = scallopGroup.position;
+      light.position.set(scallop_position.x + 20, scallop_position.y - 25, scallop_position.z); // Initial position
+      // Create a sphere for the light source
+      const lightGeometry = new THREE.SphereGeometry(0.5, 16, 16);
+      const lightMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+      const lightMesh = new THREE.Mesh(lightGeometry, lightMaterial);
+      light.add(lightMesh);
+      scene.add(light);
+
+      let time = 0;
+      let speed = 0.00;
+      threats[type] = [light, speed];
+      // Animating the ring in a sinusoidal motion
+      function animateRing() {
+        time += speed;
+        threat_x = light.position.x;
+        threat_y = light.position.y;
+        threat_z = light.position.z;
+
+        scallop_x = scallopGroup.position.x;
+        scallop_y = scallopGroup.position.y;
+        scallop_z = scallopGroup.position.z;
+
+        // direction vector
+        const direction = new THREE.Vector3(
+          scallop_x - threat_x,
+          scallop_y - threat_y,
+          scallop_z - threat_z
+        ).normalize();
+
+        if (speed > 0.01) {
+          // Apply force to move the scallop away
+          light.position.add(direction.multiplyScalar(speed)); // Move threat towards the scallop
+        }
+
+        // Interactions with the environment
+        eyeGroup.children.forEach((eye, index) => {
+          // Calculate distance to the light (threat)
+          const distance = light.position.distanceTo(eye.position);
+
+          // Update emissive intensity based on proximity
+          const intensity = Math.max(0, 1 - distance / 20); // Inverse distance effect
+          eye.material.emissive.setRGB(intensity, 0, 0); // Red glow increases as threat nears
+
+          // Update beam animation
+          if (scanToggle.checked) {
+            const beam = eyeBeams[index];
+            const length = Math.sin(time + index) * 15 + 10; // Oscillating length
+            beam.scale.set(1, length, 1); // Scale the beam's Y-axis for a dynamic effect
+          }
+        });
+
+        requestAnimationFrame(animateRing);
+      }
+
+      threats[type] = [light, speed];
+      // Add a slider to control the speed of the orbital ring
+      const speedSlider = document.createElement("input");
+      speedSlider.type = "range";
+      speedSlider.min = "0.001";
+      speedSlider.max = "0.5";
+      speedSlider.step = "0.001";
+      speedSlider.value = "0.00";
+      speedSlider.style.width = "200px";
+      speedSlider.style.marginTop = "10px";
+      speedSlider.addEventListener("input", (event) => {
+        speed = parseFloat(event.target.value);
+        speedValue.textContent = speed.toFixed(2);
+        threats[type] = [light, speed];
+      });
+      // add a div to side bar
+      const sidebar = document.getElementById("sidebar");
+
+      // add a div
+      const speedDiv = document.createElement("div");
+      // add a label to the div
+      const speedLabel = document.createElement("label");
+      speedLabel.textContent = type + " Velocity";
+      speedLabel.style.color = "white";
+      speedDiv.appendChild(speedLabel);
+      speedDiv.appendChild(speedSlider);
+      const speedValue = document.createElement("span");
+      speedValue.id = "speedValue";
+      speedValue.textContent = "0.00";
+      speedValue.style.color = "white";
+      speedDiv.appendChild(speedValue);
+
+      sidebar.appendChild(speedDiv);
+      animateRing();
+    }
+
+    // Event listeners for catalog cards
+    document.getElementById("card1").addEventListener("click", () => createOrbitalRing('Sinusoidal'));
+    document.getElementById("card2").addEventListener("click", () => createLinear('Linear'));
+    document.getElementById("card3").addEventListener("click", () => createRandom('Random'));
+
   </script>
 </body>
 
