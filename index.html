@@ -108,11 +108,17 @@
 
 <body>
   <div id="sidebar">
-    <div class="sidebar-item threat">Red ones are threats</div>
+    <div class="sidebar-item threat">Red spheres are threats</div>
+    <!--
     <div class="sidebar-item prey">Green ones are prey</div>
+    -->
     <div class="checkbox-container">
       <input type="checkbox" id="scanToggle" checked />
       <label for="scanToggle" class="checkbox-label">Enable Scan Beams</label>
+    </div>
+    <div class="checkbox-container">
+      <input type="checkbox" id="dragEnabled" />
+      <label for="dragEnabled" class="checkbox-label">Enable Dragging</label>
     </div>
     <button id="toggleShell">Toggle Shell</button>
     <div style="padding: 10px 0" ;">
@@ -138,54 +144,61 @@
   <div id="catalog">
     <div class="catalog-card" id="card1">Sinoid Threat</div>
     <div class="catalog-card" id="card2">Linear Threat</div>
-    <div class="catalog-card" id="card3">Threat 3</div>
   </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="OrbitControls.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/23.1.3/tween.umd.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.115/examples/js/controls/DragControls.js"></script>
+
+
 
   <script>
     // Setup the scene, camera, and renderer
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(
-      75,
+      100,
       window.innerWidth / window.innerHeight,
       0.1,
       1000
     );
+    camera.position.set(0, 10, 20);
     const renderer = new THREE.WebGLRenderer();
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
     const threats = {};
     let selectedEye = null;
     let eyeDetailText = null;
-
+    const draggableObjects = [];
     // Function to animate the camera to focus on a specific eye
     function zoomToEye(eye) {
-      const targetPosition = eye.position.clone();
-      const cameraTarget = new THREE.Vector3(
-        targetPosition.x,
-        targetPosition.y,
-        targetPosition.z
-      ).add(targetPosition.clone().normalize().multiplyScalar(5)); // Offset slightly for better visibility
+      let isFollowingEye = true; // A flag to control when to stop following the eye
+      const offset = new THREE.Vector3(10, 5, 10); // Offset to position the camera relative to the eye
 
-      // Animate camera movement
-      new TWEEN.Tween(camera.position)
-        .to(
-          {
-            x: cameraTarget.x,
-            y: cameraTarget.y,
-            z: cameraTarget.z,
-          },
-          1000 // Animation duration
-        )
-        .easing(TWEEN.Easing.Cubic.Out)
-        .start();
+      // Start by setting the initial camera position and target
+      const targetPosition = eye.getWorldPosition(new THREE.Vector3()); // Get the eye's position in world coordinates
+      camera.position.copy(targetPosition.clone().add(offset));
+      controls.target.copy(targetPosition);
+      controls.update();
 
-      // Add inside-eye detail visualization
-      // Add inside-eye detail visualization
+      // Continuously update the camera to follow the eye if the scallop moves
+      const followEye = () => {
+        if (!isFollowingEye) return; // Stop updating when the flag is false
 
+        // Update camera position and target to follow the eye
+        const currentEyePosition = eye.getWorldPosition(new THREE.Vector3()); // Update eye position
+        camera.position.copy(currentEyePosition.clone().add(offset));
+      };
+
+      // Start following the eye
+      followEye();
+
+      // Add a listener to stop following the eye when the user interacts with controls
+      const stopFollowing = () => {
+        isFollowingEye = false;
+        document.body.removeEventListener("mousedown", stopFollowing); // Clean up the event listener
+      };
+      document.body.addEventListener("mousedown", stopFollowing); // Stop following when the user clicks/rotates
       // Add sidebar for explaining layers of the eye
       let eyeSidebar = document.createElement("div");
       eyeSidebar.style.color = "white";
@@ -215,7 +228,7 @@
       document.body.appendChild(eyeSidebar);
     }
 
-    const particleCount = 200;
+    const particleCount = 500;
     const particles = new THREE.Group();
 
     for (let i = 0; i < particleCount; i++) {
@@ -227,6 +240,8 @@
           transparent: true,
         })
       );
+      // make the particles emit small light-
+
       particle.position.set(
         Math.random() * 50 - 25,
         Math.random() * 50 - 25,
@@ -279,8 +294,21 @@
     // Add the scallop's eyes along the midsection (equator of the ovoid)
     const numEyes = 20; // Reduced for clarity
     const eyeGroup = new THREE.Group();
+    const eyeLabels = []; // Array to store labels for the eyes
+
     const eyeBeams = [];
     const spotlights = [];
+
+    const guiContainer = document.createElement("div");
+    guiContainer.style.position = "absolute";
+    guiContainer.style.top = "10px";
+    guiContainer.style.left = "10px";
+    guiContainer.style.color = "white";
+    guiContainer.style.padding = "10px";
+    guiContainer.style.backgroundColor = "rgba(0, 0, 0, 0.5)";
+    document.body.appendChild(guiContainer);
+
+
     for (let i = 0; i < numEyes; i++) {
       // Position eyes along the equator of the ovoid
       const angle = (i / numEyes) * Math.PI * 2; // Spread evenly around the equator
@@ -477,6 +505,10 @@
     const controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true; // Smooth dragging
     controls.dampingFactor = 0.05;
+    controls.screenSpacePanning = false; // Prevent panning along z-axis
+    controls.maxPolarAngle = Math.PI / 2; // Limit vertical rotation
+    // Target the scallop initially
+
 
     let isShellOpen = false; // Flag to track if the shell is open
     let isAnimating = false; // Flag to check if the shell is in the process of opening/closing
@@ -504,9 +536,6 @@
           if (clickedEye !== selectedEye) {
             selectedEye = clickedEye;
             zoomToEye(clickedEye);
-          } else {
-            resetCameraView();
-            selectedEye = null;
           }
         }
       },
@@ -520,11 +549,15 @@
       });
     });
 
+    const dragEnabled = document.getElementById("dragEnabled");
+    dragEnabled.addEventListener("change", (e) => {
+      controls.enabled = !e.target.checked;
+    });
 
     // Animate the light source with sinusoidal movement
     // Light (Threat) setup
     const light = new THREE.PointLight(0xff0000, 2, 50); // Intense red threat light
-
+    light.name = 'default'
     light.position.set(20, 25, 0); // Initial position
 
     // Create a sphere for the light source
@@ -532,11 +565,11 @@
     const lightMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
     const lightMesh = new THREE.Mesh(lightGeometry, lightMaterial);
     light.add(lightMesh);
-
     // Add the light to the dictionary of threats
     // key should be the velocity
     threats['default'] = [light, 0.02];
     scene.add(light);
+    draggableObjects.push(light);
     let time = 0; // For sinusoidal motion
     let velocity = 0.00; // Default1 velocity
     let scallopVelocity = 0.3; // Default velocity
@@ -638,6 +671,9 @@
         // Toggle shell state (open or close) when escaping
         isShellOpen = !isShellOpen;
       }
+      else {
+        isShellOpen = false; // Close the shell when there are no threats
+      }
 
       previousScallopPosition.copy(scallopGroup.position);
 
@@ -657,9 +693,27 @@
           isAnimating = false;
         }
       }
+      controls.target.copy(scallopGroup.position); // Lock onto the scallop
+      controls.update();
+      // Update controls target to follow scallop, but apply smoothing to avoid jerky movement
+      const smoothTarget = scallopGroup.position.clone().multiplyScalar(0.5).add(previousScallopPosition.multiplyScalar(0.5));
+      controls.target = smoothTarget;
+
+      // Move the eyes with the scallop along the equator, using a fixed radius
+      eyeGroup.children.forEach((eye, index) => {
+        // move the eye in the same direction as the scallop
+        const angle = (index / numEyes) * Math.PI * 2; // Spread evenly around the equator
+        const x = 10 * Math.cos(angle); // Radius along x-axis
+        const y = 0; // Centered on midsection
+
+        const z = 10 * Math.sin(angle); // Radius along z-axis
+        eye.position.set(x, y, z);
+
+      });
+
     }
 
-
+    const offset = new THREE.Vector3(45, 4, 0); // Initial offset from the scallop
 
     function animate() {
       requestAnimationFrame(animate);
@@ -668,7 +722,11 @@
       // Update light position using sinusoidal motion
       animateThreat();
       animateShell();
-      controls.update(); // Update orbit controls
+      const worldPosition = new THREE.Vector3();
+      scallopGroup.getWorldPosition(worldPosition);
+      controls.target.copy(worldPosition);
+      camera.position.copy(scallopGroup.position).add(offset);
+
       renderer.render(scene, camera);
       animateParticles();
     }
@@ -686,6 +744,32 @@
     });
     // Add the group to the scene
     scene.add(scallopGroup);
+    controls.addEventListener("change", () => {
+      offset.subVectors(camera.position, scallopGroup.position);
+    });
+    controls.target = scallopGroup.position; // Set the target to the scallop
+
+    // Make draggable objects to be the first element of all the values in threats
+
+    const dragControls = new THREE.DragControls(draggableObjects, camera, renderer.domElement);
+
+    dragControls.addEventListener('dragend', function (event) {
+      // Update the position of the threats when they are dragged
+      const object = event.object;
+
+      // previous position
+      const worldPosition = new THREE.Vector3();
+      object.getWorldPosition(worldPosition);
+      object.parent.position.copy(worldPosition);
+
+      object.position.set(0, 0, 0);
+      const objectName = object.parent.name; // Extract the object's name
+      if (objectName && threats[objectName]) {
+        threats[objectName][0].position.copy(worldPosition);
+      } else {
+        console.warn('Object name is not set or not found in threats:', object);
+      }
+    });
 
     animate();
 
@@ -707,10 +791,11 @@
       const lightMesh = new THREE.Mesh(lightGeometry, lightMaterial);
       light.add(lightMesh);
       scene.add(light);
-
+      light.name = type;
       let time = 0;
       let speed = 0.00;
       threats[type] = [light, speed];
+      draggableObjects.push(light);
       // Animating the ring in a sinusoidal motion
       function animateRing() {
         time += speed;
@@ -769,10 +854,11 @@
       const lightMesh = new THREE.Mesh(lightGeometry, lightMaterial);
       light.add(lightMesh);
       scene.add(light);
-
+      light.name = type;
       let time = 0;
       let speed = 0.00;
       threats[type] = [light, speed];
+      draggableObjects.push(light);
       // Animating the ring in a sinusoidal motion
       function animateRing() {
         time += speed;
@@ -855,7 +941,6 @@
     // Event listeners for catalog cards
     document.getElementById("card1").addEventListener("click", () => createOrbitalRing('Sinusoidal'));
     document.getElementById("card2").addEventListener("click", () => createLinear('Linear'));
-    document.getElementById("card3").addEventListener("click", () => createRandom('Random'));
 
   </script>
 </body>
