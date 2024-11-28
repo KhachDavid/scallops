@@ -173,32 +173,46 @@
     // Function to animate the camera to focus on a specific eye
     function zoomToEye(eye) {
       let isFollowingEye = true; // A flag to control when to stop following the eye
-      const offset = new THREE.Vector3(10, 5, 10); // Offset to position the camera relative to the eye
+      const offset = new THREE.Vector3(2, 0, 0); // Offset to position the camera relative to the eye
 
       // Start by setting the initial camera position and target
       const targetPosition = eye.getWorldPosition(new THREE.Vector3()); // Get the eye's position in world coordinates
-      camera.position.copy(targetPosition.clone().add(offset));
-      controls.target.copy(targetPosition);
-      controls.update();
 
-      // Continuously update the camera to follow the eye if the scallop moves
-      const followEye = () => {
-        if (!isFollowingEye) return; // Stop updating when the flag is false
+      // Define the camera's target position and focus point after the animation
+      const finalCameraPosition = targetPosition.clone().add(offset);
 
-        // Update camera position and target to follow the eye
-        const currentEyePosition = eye.getWorldPosition(new THREE.Vector3()); // Update eye position
-        camera.position.copy(currentEyePosition.clone().add(offset));
+      // Capture the current camera position and target for smooth interpolation
+      const currentCameraPosition = camera.position.clone();
+      const currentTarget = controls.target.clone();
+
+      // Create tween animations for camera position and controls target
+      new TWEEN.Tween(currentCameraPosition)
+        .to(finalCameraPosition, 1000) // Duration of the animation in milliseconds
+        .easing(TWEEN.Easing.Quadratic.InOut) // Easing function for smooth animation
+        .onUpdate(() => {
+          camera.position.copy(currentCameraPosition); // Update the camera's position during animation
+        })
+        .start();
+
+      new TWEEN.Tween(currentTarget)
+        .to(targetPosition, 1000) // Match duration to the camera position animation
+        .easing(TWEEN.Easing.Quadratic.InOut) // Same easing for consistency
+        .onUpdate(() => {
+          controls.target.copy(currentTarget); // Update controls target during animation
+          controls.update(); // Ensure orbit controls stay in sync
+        })
+        .onComplete(() => {
+          // Ensure camera and controls are perfectly aligned at the end of the animation
+          controls.target.copy(targetPosition);
+          controls.update();
+        })
+        .start();
+
+      // Ensure TWEEN animations are updated every frame
+      const animateTween = () => {
+        requestAnimationFrame(animateTween);
+        TWEEN.update();
       };
-
-      // Start following the eye
-      followEye();
-
-      // Add a listener to stop following the eye when the user interacts with controls
-      const stopFollowing = () => {
-        isFollowingEye = false;
-        document.body.removeEventListener("mousedown", stopFollowing); // Clean up the event listener
-      };
-      document.body.addEventListener("mousedown", stopFollowing); // Stop following when the user clicks/rotates
       // Add sidebar for explaining layers of the eye
       let eyeSidebar = document.createElement("div");
       eyeSidebar.style.color = "white";
