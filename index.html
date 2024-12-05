@@ -118,7 +118,7 @@
     </div>
     <div class="checkbox-container">
       <input type="checkbox" id="dragEnabled" />
-      <label for="dragEnabled" class="checkbox-label">Enable Dragging</label>
+      <label for="dragEnabled" class="checkbox-label">Enable Threat Dragging</label>
     </div>
     <button id="toggleShell">Toggle Shell</button>
     <div style="padding: 10px 0" ;">
@@ -136,7 +136,7 @@
   <div id="info">
     <h1 style="color: white">3D Scallop Vision Simulation</h1>
     <p style="color: white">
-      Drag to rotate, scroll to zoom, observe the scallop's reaction to light!
+      Click on the eyes. Drag to rotate, scroll to zoom, observe the scallop's reaction to light!
     </p>
   </div>
 
@@ -145,6 +145,13 @@
     <div class="catalog-card" id="card1">Sinoid Threat</div>
     <div class="catalog-card" id="card2">Linear Threat</div>
   </div>
+
+  <!-- At the bottom right add citations-->
+  <div style="position: absolute; bottom: 10px; right: 10px; color: white; font-family: Arial, sans-serif;">
+    <p style="text-align: right;">Created by David Khachatryan</p>
+    <a style="color: white;" href="https://www.science.org/doi/10.1126/science.aam9506"><p>Inspired the Benjamin Palmer (2017) et al. The image-forming mirror in the eye of the scallop.</a>
+  </div>
+
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="OrbitControls.js"></script>
@@ -157,7 +164,7 @@
     // Setup the scene, camera, and renderer
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(
-      100,
+      95,
       window.innerWidth / window.innerHeight,
       0.1,
       1000
@@ -225,17 +232,21 @@
       eyeSidebar.style.right = "20px";
       eyeSidebar.style.fontFamily = "Arial, sans-serif";
       eyeSidebar.style.boxShadow = "0 4px 8px rgba(0, 0, 0, 0.3)";
+      // make it scrollable
+      eyeSidebar.style.overflow = "auto";
+      eyeSidebar.style.maxHeight = "75vh";
+      
 
       // Populate sidebar with explanations
       eyeSidebar.innerHTML = `
   <h2>Layers of the Scallop's Eye</h2>
   <ul>
-    <li><strong style="color: #007bff">Lens:</strong> Although they do not have a typical crystalline lens capable of strong refraction, they do have a gelatinous region at the front of their eye (roughly analogous to the vitreous humour in a human eye) that acts as a very weakly refracting lens. Light entering the scallop eye is refracted, but not to the extent that it forms a clear image on the back of the eye.</li>
-    <li><strong style="color: #4E2A84">Distal Retina:</strong> The outer layer of the retina that detects bright light and provides a detailed image.</li>
-    <li><strong style="color: #ff4500">Proximal Retina:</strong> The inner layer of the retina that detects dim light and helps in depth perception.</li>
-    <li><strong style="color: #62361b">Mirror:</strong> A concave structure that reflects light back through the retinas, enhancing sensitivity and enabling a wide field of vision.</li>
+    <li><strong style="color: #007bff">Lens:</strong> Gelatinous material. It is a weak refracting lens. This type of lens is analogous to wearing sunglasses. It protects scallop's eyes from UV wavelengths. This type of blue color is seen in the eyes of the Bay Scallop. In contrary, sea scallops don't have them, because they live deeper under the sea, where UV wavelengths are not as common.</li>
+    <li><strong style="color: #f04500">Distal Retina:</strong> Can best focus light that is directly in front of it. Distal retina is not as light sensitive as the proximal retina. Therefore, scallops use it to detect quick motions in front of them. It is also perfect for dim light. This retina is analogous to the mammalian cone cells.</li>
+    <li><strong style="color: #4E2A84">Proximal Retina:</strong> Can best focus light that is in the periphery. It is very light sensitive, so what is in front of the scallop is seen as a big blur. It is analogous to the mammalian rod cells.</li>
+    <li><strong style="color: #62361b">Mirror:</strong> A non-spherical concave structure made of alternating layers of guanine crystals and cytosine, with high and low refractive indices, respectively.</li>
   </ul>
-  <p>The scallop's eye uses both retinas and the mirror to create a unique optical system, allowing it to detect predators and food efficiently.</p>
+  <p>The scallop's eye uses both retinas and the mirror to create a unique optical system, allowing it to simultaneously focus points in front of it and in the periphery.</p>
 `;
 
       // Append sidebar to the document
@@ -347,7 +358,7 @@
       // Add the mirror (m) at the back of the eye
       const mirrorGeometry = new THREE.SphereGeometry(0.8, 32, 32);
       const mirrorMaterial = new THREE.MeshStandardMaterial({
-        color: 0xffffff,
+        color: 0x010101, // White
         metalness: 1,
         roughness: 0,
         side: THREE.BackSide, // Internal reflection
@@ -374,7 +385,7 @@
       // Add the proximal retina (inner retina)
       const proximalRetinaGeometry = new THREE.SphereGeometry(0.6, 32, 32);
       const proximalRetinaMaterial = new THREE.MeshBasicMaterial({
-        color: 0xff4500, // Deeper red
+        color: 0xf04500, // Deeper red
         opacity: 0.5,
         transparent: true,
         side: THREE.BackSide,
@@ -387,15 +398,15 @@
       eye.add(proximalRetina);
 
       // Add the very weakly refracting gelatinous lens (l)
-      const lensGeometry = new THREE.SphereGeometry(0.9, 32, 32); // Slightly larger than retina
-      const lensMaterial = new THREE.MeshStandardMaterial({
-        color: 0xeeeeee, // Light grey for weak refraction
-        opacity: 0.3,
-        transparent: true,
-      });
-      const lens = new THREE.Mesh(lensGeometry, lensMaterial);
-      lens.position.set(0, 0, 0);
-      eye.add(lens);
+      //const lensGeometry = new THREE.SphereGeometry(0.9, 32, 32); // Slightly larger than retina
+      //const lensMaterial = new THREE.MeshStandardMaterial({
+      //  color: 0xeeeeee, // Light grey for weak refraction
+      //  opacity: 0.3,
+      //  transparent: true,
+      //});
+      //const lens = new THREE.Mesh(lensGeometry, lensMaterial);
+      //lens.position.set(0, 0, 0);
+      //eye.add(lens);
 
       // Add the thin blue coating (o) around the edges with an open front
       const blueCoatingGeometry = new THREE.SphereGeometry(
@@ -684,9 +695,6 @@
 
         // Toggle shell state (open or close) when escaping
         isShellOpen = !isShellOpen;
-      }
-      else {
-        isShellOpen = false; // Close the shell when there are no threats
       }
 
       previousScallopPosition.copy(scallopGroup.position);
